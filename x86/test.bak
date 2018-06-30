@@ -1,0 +1,420 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>  
+#include <curl/curl.h>  
+#include <linux/ioctl.h>
+#include <sys/socket.h>
+#include <linux/sockios.h>
+#include <net/if.h>
+#include <unistd.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+
+#include <openssl/pem.h>
+#include <openssl/bio.h>
+#include <openssl/evp.h>
+#include <openssl/sha.h>
+#include <openssl/hmac.h> 
+
+#include "json-c/json.h"
+
+
+void test_jsonc()    
+{    
+    
+    struct json_object *infor_object = NULL;    
+    infor_object = json_object_new_object();    
+    if (NULL == infor_object)    
+    {    
+        printf("new json object failed.\n");    
+        return;    
+    }    
+    
+    struct json_object *para_object = NULL;    
+    para_object = json_object_new_object();    
+    if (NULL == para_object)    
+    {    
+        json_object_put(infor_object);//free    
+        printf("new json object failed.\n");    
+        return;    
+    }    
+    
+    struct json_object *array_object = NULL;    
+    array_object = json_object_new_array();    
+    if (NULL == array_object)    
+    {    
+        json_object_put(infor_object);//free    
+        json_object_put(para_object);//free    
+        printf("new json object failed.\n");    
+        return;    
+    }    
+    
+    /*添加json值类型到数组中*/    
+    json_object_array_add(array_object, json_object_new_int(256));    
+    json_object_array_add(array_object, json_object_new_int(257));    
+    json_object_array_add(array_object, json_object_new_int(258));    
+    
+    json_object_object_add(para_object, "DeviceId", json_object_new_string("sn_iso_9000"));    
+    json_object_object_add(para_object, "MacAddr", json_object_new_string("AA:BB:CC:DD:EE:FF"));    
+    json_object_object_add(para_object, "Visible", json_object_new_int(1));    
+    
+    /*添加json名称和值到json对象集合中*/    
+    json_object_object_add(infor_object, "method", json_object_new_string("GetSystemInfo"));    
+    json_object_object_add(infor_object, "param", para_object);    
+    json_object_object_add(infor_object, "id", json_object_new_string("101"));    
+    
+    /*添加数组集合到json对象中*/    
+    json_object_object_add(infor_object, "array", array_object);    
+    json_object_to_file("1.json",infor_object);   
+      
+    struct json_object *result_object = NULL;    
+      
+    json_object_object_get_ex(infor_object, "method",&result_object);    
+    printf("-----------result_object method ---------------------------\n");    
+    printf("%s\n", json_object_to_json_string(result_object));    
+    printf("-----------result_object method---------------------------\n");    
+    
+    json_object_object_get_ex(infor_object, "param",&result_object);    
+    printf("-----------result_object param ---------------------------\n");    
+    printf("%s\n", json_object_to_json_string(result_object));    
+    printf("-----------result_object param---------------------------\n");    
+    
+    json_object_object_get_ex(infor_object, "array",&result_object);    
+    printf("-----------result_object  array---------------------------\n");    
+    printf("%s\n", json_object_to_json_string(result_object));    
+    printf("-----------result_object array---------------------------\n");    
+    
+    int i;    
+    for(i = 0; i < json_object_array_length(result_object); i++) {    
+      struct json_object *obj = json_object_array_get_idx(result_object, i);    
+      printf("\t[%d]=%s\n", i, json_object_to_json_string(obj));    
+    }    
+  
+    struct json_object *file_object = NULL;    
+    unsigned int filesize = 0;  
+    FILE *fp;    
+    fp = fopen("1.json", "r");    
+    fseek(fp, 0L, SEEK_END);    
+    filesize = ftell(fp);      
+    printf("filesize is %d \n",filesize);  
+    fclose(fp);  
+  
+    FILE *fp2;    
+    char *file;  
+    fp2 = fopen("1.json", "r");  
+    file = (char *)malloc(filesize + 1);  
+    fseek(fp2, SEEK_SET, 0);
+    if(fread(file,1,filesize,fp2)>0);
+    file_object = json_tokener_parse(file);  
+    fclose(fp2);  
+    json_object_to_file("2.json",file_object);  
+  
+    printf("-----------json infor ---------------------------\n");    
+    printf("%s\n", json_object_to_json_string(infor_object));    
+    printf("-----------json infor ---------------------------\n");    
+   
+    json_object_put(infor_object);//free   
+    json_object_put(file_object);//free   
+    
+}    
+
+int base64_encode(char *in_str, int in_len, char *out_str)
+{
+    BIO *b64, *bio;
+    BUF_MEM *bptr = NULL;
+    size_t size = 0;
+
+    if (in_str == NULL || out_str == NULL)
+        return -1;
+
+    b64 = BIO_new(BIO_f_base64());
+    bio = BIO_new(BIO_s_mem());
+    bio = BIO_push(b64, bio);
+
+    BIO_write(bio, in_str, in_len);
+    if ( BIO_flush(bio) );
+    //BIO_flush(bio);
+
+    BIO_get_mem_ptr(bio, &bptr);
+    memcpy(out_str, bptr->data, bptr->length);
+    out_str[bptr->length] = '\0';
+    size = bptr->length;
+
+    BIO_free_all(bio);
+    return size;
+}
+
+int base64_decode(char *in_str, int in_len, char *out_str)
+{
+    BIO *b64, *bio;
+    //BUF_MEM *bptr = NULL;
+    //int counts;
+    int size = 0;
+
+    if (in_str == NULL || out_str == NULL)
+        return -1;
+
+    b64 = BIO_new(BIO_f_base64());
+    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+
+    bio = BIO_new_mem_buf(in_str, in_len);
+    bio = BIO_push(b64, bio);
+
+    size = BIO_read(bio, out_str, in_len);
+    out_str[size] = '\0';
+
+    BIO_free_all(bio);
+    return size;
+}
+
+// ---- sha256摘要哈希 ---- //    
+void hmacsha256(char * input, unsigned int input_length,  
+                unsigned char * output, unsigned int * output_length)  
+{  
+    // The secret key for hashing  
+    const char key[] = "012345678";  
+ 
+  
+    // Be careful of the length of string with the choosen hash engine. SHA1 needed 20 characters.  
+    // Change the length accordingly with your choosen hash engine.   
+
+    HMAC_CTX ctx;  
+    HMAC_CTX_init(&ctx);  
+    HMAC_Init_ex(&ctx, key, strlen(key), EVP_sha256(), NULL);  
+    HMAC_Update(&ctx, (unsigned char*)input, strlen(input));        // input is OK; &input is WRONG !!!  
+
+    HMAC_Final(&ctx, output, output_length);  
+    HMAC_CTX_cleanup(&ctx);    
+}
+
+
+    const char data[]="this is what we post to the silly web server";  
+       
+    struct WriteThis {  
+      const char *readptr;  
+      long sizeleft;  
+    };  
+ 
+
+
+    static size_t read_callback(void *ptr, size_t size, size_t nmemb, void *userp)  
+    {  
+      struct WriteThis *pooh = (struct WriteThis *)userp;  
+
+      if(size*nmemb < 1)  
+        return 0;  
+       
+      if(pooh->sizeleft) {  
+        *(char *)ptr = pooh->readptr[0]; /* copy one single byte */   
+        pooh->readptr++;                 /* advance pointer */   
+        pooh->sizeleft--;                /* less data left */   
+        return 1;                        /* we return 1 byte at a time! */   
+      }  
+       
+      return 0;                          /* no more data left to deliver */   
+    }  
+
+    int shift;
+    size_t copy_data(void *ptr, size_t size, size_t nmemb, void *stream)
+    {
+	int res_size;
+
+	res_size = size * nmemb;
+	memcpy(stream + shift, ptr, res_size);
+	shift += res_size;
+	return size * nmemb;
+    }
+
+void getLocalMac(char * mac_addr)  
+{  
+
+    int sock_mac;  
+    struct ifreq ifr_mac;  
+    
+    sock_mac = socket(AF_INET, SOCK_STREAM, 0);  
+    if (sock_mac == -1)  
+    {  
+        perror("create socket falise...mac\n");  
+        return;  
+    }  
+  
+    memset(&ifr_mac, 0, sizeof(ifr_mac));  
+    strncpy(ifr_mac.ifr_name, "wlp1s0", sizeof(ifr_mac.ifr_name) - 1);  
+  
+    if ((ioctl(sock_mac, SIOCGIFHWADDR, &ifr_mac)) < 0)  
+    {  
+        printf("mac ioctl error\n");  
+        close(sock_mac);  
+        return;  
+    }  
+  
+    sprintf(mac_addr, "%02X%02X%02X%02X%02X%02X",  
+        (unsigned char)ifr_mac.ifr_hwaddr.sa_data[0],  
+        (unsigned char)ifr_mac.ifr_hwaddr.sa_data[1],  
+        (unsigned char)ifr_mac.ifr_hwaddr.sa_data[2],  
+        (unsigned char)ifr_mac.ifr_hwaddr.sa_data[3],  
+        (unsigned char)ifr_mac.ifr_hwaddr.sa_data[4],  
+        (unsigned char)ifr_mac.ifr_hwaddr.sa_data[5]  
+    );  
+  
+    close(sock_mac);  
+  
+} 
+#define MAC_LEN 12
+#define URL "http://iot.xunrun.com.cn/base/index.php/Home/time/gettime"
+char access_key[128]={0};
+void HttpPost(char * url){
+	CURL *curl;  
+	CURLcode res;
+	long retcode = 0;
+	char buffer[1024] = {0x0};
+	struct WriteThis pooh;  
+	char mac_addr[MAC_LEN+1]= {0x0};
+	char Signature[128]= {0x0};
+	char chunk[384]= {0x0};
+	char strtosign[32]= {0x0};
+	unsigned char *sha256sign=NULL;
+	int hmac_len;
+	int i;
+	struct json_object *infor_object = NULL;  
+
+	pooh.readptr = data;  
+	pooh.sizeleft = (long)strlen(data);  
+
+	getLocalMac(mac_addr);
+	sprintf(strtosign, "%s activate",  mac_addr);
+	fprintf(stderr, "strtosign: %s\n",  strtosign);
+
+	sha256sign = (unsigned char*)malloc(EVP_MAX_MD_SIZE);  
+	hmacsha256(strtosign,(unsigned int)strlen(strtosign),(unsigned char *)sha256sign,(unsigned int *)&hmac_len);
+	fprintf(stderr, "hmac_len: %d\n",hmac_len);
+	for (i = 0; i < hmac_len; i++)
+	fprintf(stderr, "%02x",  sha256sign[i]);
+	fprintf(stderr, "\n");
+	base64_encode((char *)sha256sign,hmac_len,Signature);
+	fprintf(stderr, "Signature: %s\n",  Signature);
+	free(sha256sign);
+	sprintf(chunk, "Authorization=imAuth %s:%s",  mac_addr,Signature);
+        fprintf(stderr, "chunk: %s\n",  chunk);
+
+	/* In windows, this will init the winsock stuff */   
+	res = curl_global_init(CURL_GLOBAL_DEFAULT);  
+	/* Check for errors */   
+	if(res != CURLE_OK) {  
+		fprintf(stderr, "curl_global_init() failed: %s\n", curl_easy_strerror(res));  
+	 	return;  
+	}  
+
+	/* get a curl handle */   
+	curl = curl_easy_init();  
+	if(curl) {  
+		/* First set the URL that is about to receive our POST. */   
+		curl_easy_setopt(curl, CURLOPT_URL, url);  
+
+		/* Now specify we want to POST data */   
+		curl_easy_setopt(curl, CURLOPT_POST, 1L);  
+
+		/* we want to use our own read function */   
+		curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_callback);  
+
+		/* pointer to pass to our read function */   
+		curl_easy_setopt(curl, CURLOPT_READDATA, &pooh);  
+
+		/* get verbose debug output please */   
+		//curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);  
+
+		/* 
+		  If you use POST to a HTTP 1.1 server, you can send data without knowing 
+		  the size before starting the POST if you use chunked encoding. You 
+		  enable this by adding a header like "Transfer-Encoding: chunked" with 
+		  CURLOPT_HTTPHEADER. With HTTP 1.0 or without chunked transfer, you must 
+		  specify the size in the request. 
+		*/   
+		#ifdef USE_CHUNKED  
+		{  
+		  struct curl_slist *chunk = NULL;  
+
+		  chunk = curl_slist_append(chunk, "Transfer-Encoding: chunked");  
+		  res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);  
+		  /* use curl_slist_free_all() after the *perform() call to free this 
+		     list again */   
+		}  
+		#else  
+		/* Set the expected POST size. If you want to POST large amounts of data, 
+		   consider CURLOPT_POSTFIELDSIZE_LARGE */   
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, pooh.sizeleft);  
+		#endif  
+
+		#ifdef DISABLE_EXPECT  
+		/* 
+		  Using POST with HTTP 1.1 implies the use of a "Expect: 100-continue" 
+		  header.  You can disable this header with CURLOPT_HTTPHEADER as usual. 
+		  NOTE: if you want chunked transfer too, you need to combine these two 
+		  since you can only set one list of headers with CURLOPT_HTTPHEADER. */   
+
+		/* A less good option would be to enforce HTTP 1.0, but that might also 
+		   have other implications. */   
+		{  
+		  struct curl_slist *chunk = NULL;  
+
+		  chunk = curl_slist_append(chunk, "Expect:");  
+		  res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);  
+		  /* use curl_slist_free_all() after the *perform() call to free this 
+		     list again */   
+		}  
+		#endif  
+
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, copy_data); //设置下载数据的回调函数
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)buffer);   
+
+		/* Perform the request, res will get the return code */   
+		res = curl_easy_perform(curl);  
+		/* Check for errors */   
+		if(res != CURLE_OK)  
+		  fprintf(stderr, "curl_easy_perform() failed: %s\n",  
+			  curl_easy_strerror(res));  
+
+		res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE , &retcode);
+		if(retcode == 200&&res == CURLE_OK){
+			struct json_object *result_object = NULL;
+			fprintf(stderr, "Recv:%s\n",  buffer);  
+			infor_object = json_tokener_parse(buffer);
+			json_object_object_get_ex(infor_object, "status",&result_object);    
+			printf("-----------result_object status ---------------------------\n");    
+			printf("%s\n", json_object_to_json_string(result_object));    
+			printf("-----------result_object status---------------------------\n");
+			json_object_put(result_object);//free
+			json_object_object_get_ex(infor_object, "access_key",&result_object);    
+			printf("-----------result_object access_key ---------------------------\n");    
+			printf("%s\n", json_object_to_json_string(result_object));    
+			printf("-----------result_object access_key---------------------------\n");
+			strcpy(access_key,json_object_to_json_string(result_object)); 
+			json_object_put(result_object);//free
+			json_object_object_get_ex(infor_object, "time",&result_object);    
+			printf("-----------result_object time ---------------------------\n");    
+			printf("%s\n", json_object_to_json_string(result_object));    
+			printf("-----------result_object time---------------------------\n");  
+			json_object_put(result_object);//free
+		}
+		json_object_put(infor_object);//free
+		/* always cleanup */   
+		curl_easy_cleanup(curl);  
+	}  
+	curl_global_cleanup();
+fprintf(stderr, "access_key: %s\n",  
+			  access_key);
+
+}
+
+
+    int main(void)  
+    {  
+
+      HttpPost(URL);
+      //test_jsonc();
+
+      return 0;  
+    }  

@@ -44,7 +44,62 @@ int im_getfilenum()
 	return ret;
 }
 
+int im_openfile(char* filename)
+{
+	struct stat file_stat;
+    int ret;
+	char dirpath[MAX_DIRPATH_LEN]={0x0};
+	char src_path[MAX_DIRPATH_LEN]={0x0};
+	int fd;
+	
+    //下面语句是建立默认文件夹的路径
+    strcpy(dirpath, DEFAULT_DIRPATH);//默认的路径为data
+   
+    ret = stat(dirpath, &file_stat);//检查文件夹状态
+    if(ret<0)
+    {
+        if(errno == ENOENT)//是否已经存在该文件夹
+        {
+            ret = mkdir(dirpath, 0775);//创建文件夹
+            printf("creat dir %s \n", dirpath);
+            if(ret < 0)
+            {
+                printf("Could not create directory %s \n",
+					dirpath);
+				return EXIT_FAILURE;
+            }
+ 
+        }
+        else
+        {
+            printf("bad file path\n");
+            return EXIT_FAILURE;
+        }
+    }
+    sprintf(src_path,"%s/%s",dirpath,filename);
+    fd = open(src_path,O_RDWR|O_CREAT,0744);
+    if(fd > 0 ){
+		return fd;
+	}
+	return -1;
+}
 
+int im_savebuff(int fd,char * buf,int len)
+{
+	int sub_len = len;
+	int count = 0;
+	while(sub_len>0){
+		count = write(fd,buf,sub_len);
+		printf("savebuff count:%d\n",count);
+		sub_len =sub_len - count;
+	}
+	return sub_len;
+}
+
+void im_close(int fd)
+{
+	close(fd);
+}
 
 
 int im_savefile(char* filename,char * buf,int len)

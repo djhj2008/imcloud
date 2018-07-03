@@ -35,12 +35,23 @@ struct ping_buffer_data{
 struct waveform{
 	/* Input Waveforms */
 	uint64_t time_stamp;
-	uint16_t data[FRAMES_GROUP][ADC_SAMPLE_CHANNEL*SAMPLES_FRAME];
+	int16_t data[FRAMES_GROUP][ADC_SAMPLE_CHANNEL*SAMPLES_FRAME];
 };
 
-int8_t				global_rssi[FRAMES_GROUP];
-int					wattage[FRAMES_GROUP];
+
+struct wattage{
+	/* Input Waveforms */
+	float w1;
+	float w2
+};
+
+struct otherform{
+	int8_t rssi[FRAMES_GROUP];
+	struct wattage wat[FRAMES_GROUP]
+};
+
 struct waveform 	global_waveform;
+struct otherform	global_otherform;
 threadpool thpool;
 
 void *task(void *arg);
@@ -74,12 +85,17 @@ int sysInputScan(void)
     int sample = 0;     
     int dev_fd  = 0;
 	int index = 0;
-    
+	int V_channel = 0;
+	int L1_channel = 1;
+	int L2_channel = 2;
     struct ping_buffer_data ping_data;
     struct waveform waveform_t;
-    int8_t	rssi[FRAMES_GROUP];
-    
+    struct otherform otherform_t;
+	float w1_sum = 0;
+	float w2_sum = 0;
     char devName[128];
+	int vc = 0,ch1 = 0,ch2 = 0;
+
     
     printf("enter sysInputScan.\n");
     
@@ -134,16 +150,33 @@ int sysInputScan(void)
 					waveform_t.data[index][ch*SAMPLES_FRAME+sample]=val;
 				}
 			}
-			rssi[index]=get_wifi_info();
-			printf("rssi = %d\n", rssi[index]);
+			
+			w1_sum = 0;
+			w2_sum = 0;
+			vc = 0;
+			ch1 = 0;
+			ch2 = 0;
+			for(sample = 0; sample < SAMPLES_FRAME; sample++){
+				vc = waveform_t.data[index][sample];
+				ch1 = waveform_t.data[index][L1_channel*SAMPLES_FRAME+sample];
+				ch2 = waveform_t.data[index][L2_channel*SAMPLES_FRAME+sample];
+				//printf("CH[v] = %d CH[L1] = %d CH[L2] = %d\n", vc, ch1,ch2);
+				w1_sum += vc*ch1;
+				w2_sum += vc*ch2;
+			}
+			otherform_t.wat[index].w1 = w1_sum/SAMPLES_FRAME;
+			otherform_t.wat[index].w2 = w2_sum/SAMPLES_FRAME;
+			
+			otherform_t.rssi[index]=get_wifi_info();
+			printf("rssi = %d w1 = %f w2 = %f\n", otherform_t.rssi[index],otherform_t.wat[index].w1,otherform_t.wat[index].w2);
 			index++;
 			if(index == FRAMES_GROUP){
-				printf("wave_size:%d,rssi_size:%d \n",sizeof(waveform_t),sizeof(rssi));
+				printf("wave_size:%d,otherform_t:%d \n",sizeof(waveform_t),sizeof(otherform_t));
 				memcpy(&global_waveform,&waveform_t,sizeof(waveform_t));
-				memcpy(global_rssi,rssi,sizeof(rssi));
+				memcpy(&global_otherform,&otherform_t,sizeof(otherform_t));
 				
 				memset(&waveform_t,0,sizeof(waveform_t));
-				memset(rssi,0,sizeof(rssi));
+				memset(&otherform_t,0,sizeof(otherform_t));
 				
 				thpool_add_work(thpool, (void*)task, NULL);
 				//im_backfile("1.dat");
@@ -165,10 +198,15 @@ int sysInputScan(void)
 
 void *task(void *arg)
 {
+	int fd;
 	printf("task().\n");
-	im_savefile("1.dat",&global_waveform,sizeof(global_waveform));
-	im_savefile("1.dat",global_rssi,sizeof(global_rssi));
-	im_backfile("1.dat");
+	fd = im_openfile("1.dat");
+	if(fd > 0){
+		im_savebuff(fd,(char *)&global_waveform,sizeof(global_waveform));
+		im_savebuff(fd,(char *)&global_otherform,sizeof(global_otherform));
+	}
+	im_close(fd);
+	im_backfile("1.dat"); 
 	im_scanDir();
 	return NULL;
 }

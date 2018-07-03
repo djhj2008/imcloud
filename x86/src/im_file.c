@@ -24,7 +24,7 @@
 
 void dumpconfig()
 {
-	char filename[MAX_BACK_FILE][MAX_DIRPATH_LEN]={0x0};
+	char filename[MAX_BACK_FILE][CONFIG_FILENAME_LEN]={0x0};
 	int fd;
 	int count;
 	int i=0;
@@ -38,7 +38,7 @@ void dumpconfig()
 	}
 	
 	
-	count = read(fd,filename,MAX_BACK_FILE*MAX_DIRPATH_LEN);
+	count = read(fd,filename,MAX_BACK_FILE*CONFIG_FILENAME_LEN);
 	if(count<0){
 		printf("file read error.\n");
 		return;
@@ -52,11 +52,68 @@ void dumpconfig()
 	close(fd);
 }
 
+int im_openfile(char* filename)
+{
+	struct stat file_stat;
+    int ret;
+	char dirpath[MAX_DIRPATH_LEN]={0x0};
+	char src_path[MAX_DIRPATH_LEN]={0x0};
+	int fd;
+	
+    //下面语句是建立默认文件夹的路径
+    strcpy(dirpath, DEFAULT_DIRPATH);//默认的路径为data
+   
+    ret = stat(dirpath, &file_stat);//检查文件夹状态
+    if(ret<0)
+    {
+        if(errno == ENOENT)//是否已经存在该文件夹
+        {
+            ret = mkdir(dirpath, 0775);//创建文件夹
+            printf("creat dir %s \n", dirpath);
+            if(ret < 0)
+            {
+                printf("Could not create directory %s \n",
+					dirpath);
+				return EXIT_FAILURE;
+            }
+ 
+        }
+        else
+        {
+            printf("bad file path\n");
+            return EXIT_FAILURE;
+        }
+    }
+    sprintf(src_path,"%s/%s",dirpath,filename);
+    fd = open(src_path,O_RDWR|O_CREAT,0744);
+    if(fd > 0 ){
+		return fd;
+	}
+	return -1;
+}
+
+int im_savebuff(int fd,char * buf,int len)
+{
+	int sub_len = len;
+	int count = 0;
+	while(sub_len>0){
+		count = write(fd,buf,sub_len);
+		printf("savebuff count:%d\n",count);
+		sub_len =sub_len - count;
+	}
+	return sub_len;
+}
+
+void im_close(int fd)
+{
+	close(fd);
+}
+
 
 int im_saveconfig(char * file)
 {	
-	char filename[MAX_BACK_FILE][MAX_DIRPATH_LEN]={0x0};
-	char temp[MAX_BACK_FILE][MAX_DIRPATH_LEN]={0x0};
+	char filename[MAX_BACK_FILE][CONFIG_FILENAME_LEN]={0x0};
+	char temp[MAX_BACK_FILE][CONFIG_FILENAME_LEN]={0x0};
 	char dirpath[MAX_DIRPATH_LEN]={0x0};
 	int i=0;
 	int flag = 0;
@@ -73,7 +130,7 @@ int im_saveconfig(char * file)
 	}
 	
 	
-	count = read(fd,filename,MAX_BACK_FILE*MAX_DIRPATH_LEN);
+	count = read(fd,filename,MAX_BACK_FILE*CONFIG_FILENAME_LEN);
 	if(count<0){
 		printf("file read error.\n");
 		return -1;
@@ -94,16 +151,16 @@ int im_saveconfig(char * file)
 		}
 	}
 	if(flag == 0){
-		memcpy(temp,filename[1],MAX_DIRPATH_LEN*(MAX_BACK_FILE-1));
+		memcpy(temp,filename[1],CONFIG_FILENAME_LEN*(MAX_BACK_FILE-1));
 		strcpy(temp[MAX_BACK_FILE-1],file);
-		count = write(fd,temp,MAX_BACK_FILE*MAX_DIRPATH_LEN);
+		count = write(fd,temp,MAX_BACK_FILE*CONFIG_FILENAME_LEN);
 		if(count < 0)
 		{
 			printf("file write error.\n");
 			return -1;	
 		}
 	}else{
-		count = write(fd,filename,MAX_BACK_FILE*MAX_DIRPATH_LEN);
+		count = write(fd,filename,MAX_BACK_FILE*CONFIG_FILENAME_LEN);
 		if(count < 0)
 		{
 			printf("file write error.\n");
@@ -224,9 +281,10 @@ int im_backfile(char* filename)
 	sprintf(des_path,"%s/%s.bak",SAVE_DIRPATH,file_back);
 	
 	ret = im_copyfile(src_path,des_path);
-	im_saveconfig(file_back);
-	remove(src_path);
-	
+	if(ret == 0 ){
+		im_saveconfig(file_back);
+		remove(src_path);
+	}
 	return ret;
 }
 
@@ -286,6 +344,13 @@ int im_copyfile(char const *src_path, char const *des_path)
 	int len,w_len;
 	fd = open(src_path,O_RDWR);
 	fd2 = open(des_path,O_RDWR|O_CREAT,0644);
+	
+	if(fd < 0|| fd2 < 0)
+	{
+		printf("im_copyfile open Error.\n");
+		return -1;
+	}
+	
 	while((len = read(fd,buff,1024)))
 	{
 		w_len = write(fd2,buff,len);

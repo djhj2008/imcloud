@@ -32,15 +32,23 @@ struct waveform{
 	uint16_t data[FRAMES_GROUP][ADC_SAMPLE_CHANNEL*SAMPLES_FRAME];
 };
 
-/* Input Waveforms */
 struct data_header{
-	/* Input Waveforms */
 	uint8_t version;
 	uint16_t total;
 	uint8_t flag;
 	float igain;
 	float vgain;
 	uint32_t start_time;
+};
+
+struct wattage{
+	float w1;
+	float w2;
+};
+
+struct otherform{
+	int8_t rssi[FRAMES_GROUP];
+	struct wattage wat[FRAMES_GROUP];
 };
 
 /* =================================== API ======================================= */

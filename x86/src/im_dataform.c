@@ -4,7 +4,7 @@
  * Description:  File creat read write.
  *               For usage, check the dataform.h file
  *
- *//** @file dataform.h *//*
+ *//** @file im_dataform.h *//*
  *
  ********************************/
  
@@ -50,10 +50,9 @@ int GenerateWaveform(char * file)
 	ple_code_t	ier_e;
 	int fd;
     char dirpath[MAX_DIRPATH_LEN]={0x0};
-	int count;
-	struct waveform *waveform_t=NULL;
-	//int8_t				rssi[FRAMES_GROUP];
-	//int					wattage[FRAMES_GROUP];
+	int w_count,o_count;
+	struct waveform 	*waveform_t=NULL;
+	struct otherform 	*otherform_t=NULL;
 	struct data_header  data_header_t;
 
 	printf("ucFundamentalFrq  : %d\n", ucFundamentalFrq);
@@ -117,9 +116,15 @@ int GenerateWaveform(char * file)
 
 	waveform_t = (struct waveform *)malloc(sizeof(struct waveform));
 	
-	count = read(fd,waveform_t,sizeof(struct waveform));
+	otherform_t = (struct otherform *)malloc(sizeof(struct otherform));
 	
-	if(count<0){
+	w_count = read(fd,waveform_t,sizeof(struct waveform));
+	
+	lseek(fd,SEEK_SET,w_count);
+	
+	o_count = read(fd,otherform_t,sizeof(struct otherform));
+	
+	if(o_count<0){
 		printf("file read error.\n");
 		goto Finish;
 	}
@@ -138,6 +143,10 @@ int GenerateWaveform(char * file)
 	printf("total : %d\n", data_header_t.total);
 	printf("flag : %d\n", data_header_t.flag );
 	printf("start_time : %d\n", data_header_t.start_time);
+	
+	for(i=0;i<FRAMES_GROUP;i++){
+		printf("index = %d rssi = %d w1 = %f w2 = %f \n", i,otherform_t->rssi[i],otherform_t->wat[i].w1,otherform_t->wat[i].w2);
+	}
 	
 	if(data_header_t.start_time>0){
 		goto Finish;
@@ -242,6 +251,7 @@ Finish:
 		free(encoded_result);
 	}
 	free(waveform_t);
+	free(otherform_t);
 	/* Ending */
 	return(0);
 }

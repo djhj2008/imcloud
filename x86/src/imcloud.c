@@ -93,7 +93,7 @@ void *task(void *arg)
 		printf( "ImCloud Activate Error.\n");
 	}
 	GenerateWaveform("1.dat");
-	//im_backfile("1.dat");
+	im_backfile("1.dat");
 	im_scanDir();
 	return NULL;
 }

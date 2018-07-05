@@ -2,15 +2,24 @@ PKG = src
 SRCS = $(wildcard $(PKG)/inc/*.c) $(wildcard $(PKG)/*.c)
 OBJ = $(patsubst %.c,%.o,$(SRCS))
 
-CFLAGS := -g -m64 -O2 -Werror -Wall \
+CFLAGS := -g -lm -O2 -Werror -Wall \
   -I./include \
   -I./plc_lib_intel \
+  -I../libcurl/include \
+  -I../libssl-dev/include \
+  -I../libjson/include \
   -lcurl \
   -lssl \
   -lcrypto \
   -ljson-c \
   -lpthread \
-  ./plc_lib_intel/libple32.a
+  -lple \
+  -L../libcurl/lib \
+  -L../libssl-dev/lib \
+  -L../libjson/lib \
+  -L../plc_lib_intel
+
+
 
 RM := rm -rf
 ELF ?= imcloud

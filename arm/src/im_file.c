@@ -342,7 +342,7 @@ int im_scanDir()
 		return -1;
 	}
 
-	printf("chdir %s\n",getcwd(buf,MAX_DIRPATH_LEN));
+printf("chdir %s\n",getcwd(buf,MAX_DIRPATH_LEN));
 	return 0;  
 }  
     

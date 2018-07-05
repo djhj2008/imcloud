@@ -4,8 +4,8 @@ CFLAGS := -g -lm -O2 -Werror -Wall
 
 RM := rm -rf
 #ELF ?= $(basename $(firstword $(C_SRC)))
-LIB :=libple32.so
-OBJ := libple32.a
+LIB :=libple.so
+OBJ := libple.a
 
 .PHONY: all
 all: $(LIB)

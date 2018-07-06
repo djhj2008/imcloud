@@ -7,7 +7,7 @@
 #ifndef __IMCLOUD_H__
 #define __IMCLOUD_H__
 
-#define ACTIVATE_URL "http://iot.xunrun.com.cn/base/index.php/Home/time/gettime"
+#define ACCESS_KEY_SIZE 64
 
 #define MAC_LEN 12
 #define HTTP_RETRY_MAX 3
@@ -17,12 +17,11 @@
 
 #define ADC_SAMPLE_SIZE 192
 
-#define FRAMES_GROUP 300
-#define SAMPLES_FRAME 64
-#define ADC_SAMPLE_CHANNEL 6
-
 #define DEFAULT_DIRPATH "./data"
 #define SAVE_DIRPATH "./save"
+#define ADC_TMP_FILE_NAME "tmp.dat"
+
+#define CONFIG_FILE_PATH "./config/cloud.conf"
 
 struct ping_buffer_data{
 	//struct rtc_time tm;
@@ -31,9 +30,15 @@ struct ping_buffer_data{
 	unsigned int sample[ADC_SAMPLE_SIZE];
 };
 
+enum ICOULD_URL {
+	ICLOUD_ACTIVATE=0,
+	ICLOUD_INFO = 1,
+	ICLOUD_DATA = 2,
+};
 /* =================================== API ======================================= */
 void *task(void *arg);
-
+int ImCloudData( uint8_t * data,int len);
+int ImCloudAccessKey();
 #endif
 
 

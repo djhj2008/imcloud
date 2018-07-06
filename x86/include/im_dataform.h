@@ -8,7 +8,6 @@
 #define __IM_DATAFORM_H__
 
 #include "config.h"
-#include "plchead.h"
 #include "plehead.h"
 
 /* Constants */
@@ -31,8 +30,11 @@
 /* Input Waveforms */
 struct waveform{
 	/* Input Waveforms */
-	uint64_t time_stamp;
-	int16_t data[FRAMES_GROUP][ADC_SAMPLE_CHANNEL*SAMPLES_FRAME];
+	uint32_t time_stamp;
+	int8_t rssi;
+	float w1;
+	float w2;
+	int16_t data[ADC_SAMPLE_CHANNEL*SAMPLES_FRAME];
 };
 
 struct data_header{
@@ -44,17 +46,8 @@ struct data_header{
 	uint32_t start_time;
 };
 
-struct wattage{
-	float w1;
-	float w2;
-};
-
-struct otherform{
-	int8_t rssi[FRAMES_GROUP];
-	struct wattage wat[FRAMES_GROUP];
-};
 #pragma pack()
 /* =================================== API ======================================= */
-int GenerateWaveform(char * file,uint8_t **postdata,int *len);
-ple_uint8_t* ple_decode(struct waveform *waveform_t,int sub_index,uint16_t ucFramesPerGroup);
+uint8_t * GenerateWaveform(char * file,int *len ,int totals);
+ple_uint8_t* ple_decode(struct waveform *waveform_t,int sub_index,uint16_t ucFramesPerGroup ,int *size);
 #endif

@@ -31,7 +31,7 @@ void dumpconfig()
 	char dirpath[MAX_DIRPATH_LEN]={0x0};
 	
 	sprintf(dirpath,"%s/config.dat",SAVE_DIRPATH);
-	fd = open(dirpath,O_RDWR|O_CREAT,0644);
+	fd = open(dirpath,O_RDWR);
 	if(fd<0){
 		printf("file open error.\n");
 		return;
@@ -51,6 +51,18 @@ void dumpconfig()
 	}
 	close(fd);
 }
+
+int get_file_size(const char *path)  
+{  
+    int filesize = -1;
+    struct stat statbuff;  
+    if(stat(path, &statbuff) < 0){  
+        return filesize;  
+    }else{  
+        filesize = (int)statbuff.st_size;  
+    }  
+    return filesize;  
+}  
 
 int im_openfile(char* filename)
 {
@@ -245,6 +257,8 @@ int im_delfile(char *filename){
 	char src_path[MAX_DIRPATH_LEN]={0x0};
 	
 	sprintf(src_path,"%s/%s",DEFAULT_DIRPATH,filename);
+	
+	printf("im_delfile : %s\n",src_path);
 	
 	remove(src_path);
 	

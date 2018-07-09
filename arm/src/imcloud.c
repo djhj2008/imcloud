@@ -1,3 +1,13 @@
+/* ********************************
+ * Author:       DJ
+ * License:	     NULL
+ * Description:  Main APP.
+ *               For usage, check the imcloud.h file
+ *
+ *//** @file imcloud.h *//*
+ *
+ ********************************/
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,85 +28,180 @@
 #include "http_tool.h"
 #include "im_file.h"
 #include "im_dataform.h"
+#include "imcloud_controller.h"
 
 
 char access_key[128]={0};
 struct waveform global_waveform[FRAMES_GROUP_MAX];
 threadpool thpool;
+uint8_t ich_flag[ADC_L_CHANNELS];
+uint8_t vch_flag[ADC_V_CHANNELS];
 
+char mac_addr[MAC_LEN+1]= {0x0};
 char cloud_url[10][256]={0};
 int global_totals;
 int next_totals;
+
+void setIchFlag(int ch){
+	printf("setIchFlag %d \n",ch);
+	if(ch<I_CHANNELS_1||ch>I_CHANNELS_4)
+		return;
+	ich_flag[ch-I_CHANNELS_1]=ADC_CH_OPEN;
+}
+
+void setVchFlag(int ch){
+	printf("setVchFlag %d \n",ch);
+	if(ch<V_CHANNELS_1||ch>V_CHANNELS_2)
+		return;
+	vch_flag[ch-V_CHANNELS_1]=ADC_CH_OPEN;
+}
+
+uint8_t getIchFlag(){
+	uint8_t flag = 0;
+	int i=0;
+	for(i=0;i<I_CHANNELS_4;i++){
+		if(ich_flag[i]==ADC_CH_OPEN){
+			flag |= L1_CHANNEL_FLAG<<i;
+		}
+	}
+	return flag;	
+}
+
+int getIchannelsCount(){
+	int i = 0;
+	int count = 0;
+	for(i=0;i<ADC_L_CHANNELS;i++){
+		if(ich_flag[i]==ADC_CH_OPEN){
+			count++;
+		}
+	}
+	return count;
+}
+
+int getVchannelsCount(){
+	int i = 0;
+	int count = 0;
+	for(i=0;i<ADC_V_CHANNELS;i++){
+		if(vch_flag[i]==ADC_CH_OPEN){
+			count++;
+		}
+	}
+	return count;
+}
+
+void resetICHFlag(){
+	int i = 0;
+	for(i=0;i<ADC_L_CHANNELS;i++){
+		ich_flag[i]=ADC_CH_CLOSE;
+	}
+}
+
+void resetVCHFlag(){
+	int i = 0;
+	for(i=0;i<ADC_V_CHANNELS;i++){
+		vch_flag[i]=ADC_CH_CLOSE;
+	}
+}
 
 void setGlobalTotals(int totals){
 	if(totals<5||totals>300)
 	 return;
 	next_totals = totals;
-} 
+}
+
+void setAccessKey(char * key){
+	strcpy(access_key,key);
+}
 
 int ImCloudData( uint8_t * data,int len){
 	char buffer[1024] = {0x0};
-	unsigned char Signature[128]= {0x0};
 	char chunkstr[384]= {0x0};
-	char mac_addr[MAC_LEN+1]= {0x0};
 	int ret = -1;
 	int retry = HTTP_RETRY_MAX;
-	struct json_object *infor_object = NULL;
-	
-	if(getLocalMac(mac_addr)<0){
-		printf("Network Error.\n");
-		return ret;
-	}
-	
-	GenerateSignature(mac_addr,Signature);
 	
 	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac_addr,access_key);
     printf("chunkstr: %s\n",  chunkstr);
 
-	ret = ImHttpPost(cloud_url[ICLOUD_DATA],chunkstr,data,len,buffer);
+	ret = ImHttpPost(cloud_url[ICLOUD_URL_DATA],chunkstr,data,len,buffer);
 
 	if(ret < 0){
 		while(retry > 0){
 			printf("ImHttpPost retry: %d,wait 5 sec.\n",  retry);
 			sleep(5);
-			ret = ImHttpPost(cloud_url[ICLOUD_ACTIVATE],chunkstr,data,len,buffer);
+			ret = ImHttpPost(cloud_url[ICLOUD_URL_ACTIVATE],chunkstr,data,len,buffer);
 			if(ret == 0){
-				struct json_object *result_object = NULL; 
-				infor_object = json_tokener_parse(buffer);
-				printf("RECV:%s\n",buffer);
-				json_object_object_get_ex(infor_object, "request",&result_object);        
-				printf("request:%s\n", json_object_get_string(result_object)); 
-				if(strcmp(json_object_get_string(result_object),"interval_change"));
-				{	
-					int totals = 0;
-					json_object_object_get_ex(infor_object, "interval",&result_object);
-					totals = json_object_get_int(result_object);
-					printf("interval:%d\n", totals);    
-					setGlobalTotals(totals);
-				}
-				json_object_put(result_object);//free
-				json_object_put(infor_object);//free
+				CloudDataHandle(buffer);
 			}
 			retry--;
 		}
 	}
 	else{
-		struct json_object *result_object = NULL; 
-		infor_object = json_tokener_parse(buffer);
-		printf("RECV:%s\n",buffer);
-		json_object_object_get_ex(infor_object, "request",&result_object);        
-		printf("request:%s\n", json_object_get_string(result_object)); 
-		if(strcmp(json_object_get_string(result_object),"interval_change"));
-		{	
-			int totals = 0;
-			json_object_object_get_ex(infor_object, "interval",&result_object);
-			totals = json_object_get_int(result_object);
-			printf("interval:%d\n", totals);    
-			setGlobalTotals(totals);
-		}
-		json_object_put(result_object);//free
-		json_object_put(infor_object);//free
+		CloudDataHandle(buffer);
 	}
+	return ret;
+}
+
+int ImCloudInfo(){
+	char buffer[1024] = {0x0};
+	char chunkstr[384]= {0x0};
+	char postdata[1024] = {0x0};
+	int ret = -1;
+	int retry = HTTP_RETRY_MAX;
+	
+	struct json_object *infor_object = NULL;
+	infor_object = json_object_new_object();
+	if (NULL == infor_object)
+	{
+		printf("ImCloudInfo new json object failed.\n");
+		return -1;
+	}
+	
+	struct json_object *array_object = NULL;
+    array_object = json_object_new_array();
+    if (NULL == array_object)
+    {
+        json_object_put(infor_object);//free
+        printf("new json object failed.\n");
+        return -1;
+    }
+    
+    json_object_array_add(array_object, json_object_new_int(256));
+    json_object_array_add(array_object, json_object_new_int(257));
+    json_object_array_add(array_object, json_object_new_int(258));
+    json_object_object_add(infor_object, "array", array_object);
+    
+	json_object_object_add(infor_object, "fw_version", json_object_new_int(4097));
+	json_object_object_add(infor_object, "booted_at", json_object_new_int64(1234567890));
+	json_object_object_add(infor_object, "manufacturer", json_object_new_string("xxxx"));
+	json_object_object_add(infor_object, "model_number", json_object_new_int(0));
+	json_object_object_add(infor_object, "hw_version", json_object_new_int(4097));
+	strcpy(postdata,json_object_to_json_string(infor_object));
+	
+	printf("ImCloudInfo Post:%s \n",postdata);
+	
+	json_object_put(array_object);//free
+    json_object_put(infor_object);//free
+    
+	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac_addr,access_key);
+    printf("chunkstr: %s\n",  chunkstr);
+
+	ret = ImHttpPost(cloud_url[ICLOUD_URL_INFO],chunkstr,(uint8_t *)postdata,strlen(postdata),buffer);
+
+	if(ret < 0){
+		while(retry > 0){
+			printf("ImHttpPost retry: %d,wait 5 sec.\n",retry);
+			sleep(5);
+			ret = ImHttpPost(cloud_url[ICLOUD_URL_INFO],chunkstr,NULL,0,buffer);
+			if(ret == 0){
+				ret = CloudInfoHandle(buffer);
+			}
+			retry--;
+		}
+	}
+	else{
+		ret = CloudInfoHandle(buffer);
+	}
+
 	return ret;
 }
 
@@ -104,64 +209,30 @@ int ImCloudAccessKey(){
 	char buffer[1024] = {0x0};
 	unsigned char Signature[128]= {0x0};
 	char chunkstr[384]= {0x0};
-	char mac_addr[MAC_LEN+1]= {0x0};
 	int ret = -1;
 	int retry = HTTP_RETRY_MAX;
-	struct json_object *infor_object = NULL;
-	
-	if(getLocalMac(mac_addr)<0){
-		printf("Network Error.\n");
-		return ret;
-	}
 	
 	GenerateSignature(mac_addr,Signature);
 	
 	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac_addr,Signature);
     printf("chunkstr: %s\n",  chunkstr);
 
-	ret = ImHttpPost(cloud_url[ICLOUD_ACTIVATE],chunkstr,NULL,0,buffer);
+	ret = ImHttpPost(cloud_url[ICLOUD_URL_ACTIVATE],chunkstr,NULL,0,buffer);
 
 	if(ret < 0){
 		while(retry > 0){
 			printf("ImHttpPost retry: %d,wait 5 sec.\n",retry);
 			sleep(5);
-			ret = ImHttpPost(cloud_url[ICLOUD_DATA],chunkstr,NULL,0,buffer);
+			ret = ImHttpPost(cloud_url[ICLOUD_URL_ACTIVATE],chunkstr,NULL,0,buffer);
 			if(ret == 0){
-				struct json_object *result_object = NULL; 
-				infor_object = json_tokener_parse(buffer);
-				json_object_object_get_ex(infor_object, "status",&result_object);        
-				printf("status:%s\n", json_object_get_string(result_object));    
-				json_object_put(result_object);//free
-				json_object_object_get_ex(infor_object, "access_key",&result_object);        
-				printf("access_key:%s\n", json_object_get_string(result_object));    
-				strcpy(access_key,json_object_get_string(result_object)); 
-				json_object_put(result_object);//free
-				json_object_object_get_ex(infor_object, "time",&result_object);    
-				printf("time:%s\n", json_object_to_json_string(result_object));    
-				json_object_put(result_object);//free
-				if(strlen(access_key)!=ACCESS_KEY_SIZE){
-					ret = 0;
-					//break;
-				}
-				json_object_put(infor_object);//free
+				ret = CloudAccessKeyHandle(buffer);
+				break;
 			}
 			retry--;
 		}
 	}
 	else{
-		struct json_object *result_object = NULL; 
-		infor_object = json_tokener_parse(buffer);
-		printf("RECV:%s\n",buffer);
-		json_object_object_get_ex(infor_object, "access_key",&result_object);        
-		//printf("access_key:%s\n", json_object_get_string(result_object));    
-		strcpy(access_key,json_object_get_string(result_object)); 
-		json_object_put(result_object);//free
-		if(strlen(access_key)!=ACCESS_KEY_SIZE){
-			ret = 0;
-		}
-		json_object_put(infor_object);//free
-
-
+		ret = CloudAccessKeyHandle(buffer);
 	}
 	return ret;
 }
@@ -195,9 +266,9 @@ int sysInputScan(void)
     int sample = 0;     
     int dev_fd  = 0;
 	int index = 0;
-	int V_channel = 0;
-	int L1_channel = 1;
-	int L2_channel = 2;
+	int V_channel = WAVE_V1_CHANNEL;
+	int L1_channel = WAVE_L1_CHANNEL;
+	int L2_channel = WAVE_L2_CHANNEL;
     struct ping_buffer_data ping_data;
     struct waveform waveform_t[FRAMES_GROUP_MAX];
 	float w1_sum = 0;
@@ -205,7 +276,6 @@ int sysInputScan(void)
     char devName[128];
 	int vc = 0,ch1 = 0,ch2 = 0;
 
-    
     printf("enter sysInputScan.\n");
     
     memset(waveform_t,0,sizeof(struct waveform)*FRAMES_GROUP_MAX);
@@ -256,7 +326,19 @@ int sysInputScan(void)
 					}
 					val = old_val;
 					//printf("CH[%d] = %d\n", ch, val);
-					waveform_t[index].data[ch*SAMPLES_FRAME+sample]=val;
+					if(ch == ADC_V1_CHANNEL){
+						waveform_t[index].data[WAVE_V1_CHANNEL*SAMPLES_FRAME+sample]=val;
+					}else if(ch == ADC_V2_CHANNEL){
+						waveform_t[index].data[WAVE_V2_CHANNEL*SAMPLES_FRAME+sample]=val;
+					}else if(ch == ADC_L1_CHANNEL){
+						waveform_t[index].data[WAVE_L1_CHANNEL*SAMPLES_FRAME+sample]=val;
+					}else if(ch == ADC_L2_CHANNEL){
+						waveform_t[index].data[WAVE_L2_CHANNEL*SAMPLES_FRAME+sample]=val;
+					}else if(ch == ADC_L3_CHANNEL){
+						waveform_t[index].data[WAVE_L3_CHANNEL*SAMPLES_FRAME+sample]=val;
+					}else if(ch == ADC_L4_CHANNEL){
+						waveform_t[index].data[WAVE_L4_CHANNEL*SAMPLES_FRAME+sample]=val;
+					}
 				}
 			}
 			
@@ -270,7 +352,7 @@ int sysInputScan(void)
 				ch1 = waveform_t[index].data[L1_channel*SAMPLES_FRAME+sample];
 				ch2 = waveform_t[index].data[L2_channel*SAMPLES_FRAME+sample];
 				if(sample==0){
-					printf("CH[v] = %d CH[L1] = %d CH[L2] = %d\n", vc, ch1,ch2);
+					//printf("CH[v] = %d CH[L1] = %d CH[L2] = %d\n", vc, ch1,ch2);
 				}
 				w1_sum += vc*ch1;
 				w2_sum += vc*ch2;
@@ -319,22 +401,37 @@ void *task(void *arg)
 {
 	int fd;
 	uint8_t *postdata = NULL;
+	uint8_t flag;
 	int len;
 	int totals = global_totals;
+	int icount = getIchannelsCount();
+	int vcount = getVchannelsCount();
 	
 	if(next_totals!=global_totals){
 		global_totals = next_totals;
 		printf("Rest Totals %d,pre Totals %d",global_totals,totals);
 	}
 	
+	flag = getIchFlag();
+	
 	printf("task().\n");
+	
+	if((access(ADC_TMP_FILE_NAME,F_OK))!=-1)   
+    {   
+		printf("TMP File Del!\n"); 
+		im_delfile(ADC_TMP_FILE_NAME); 
+    }  
+    
 	fd = im_openfile(ADC_TMP_FILE_NAME);
 	if(fd > 0){
 		im_savebuff(fd,(char *)&global_waveform,sizeof(struct waveform)*totals);
+	}else{
+		printf("Error Open TMP File.");
+		return NULL;
 	}
 	im_close(fd);
 	
-	postdata = GenerateWaveform(ADC_TMP_FILE_NAME,&len,totals);
+	postdata = GenerateWaveform(ADC_TMP_FILE_NAME,&len,icount,vcount,totals,flag);
 	if(postdata!=NULL){
 		printf("post len = %d \n",len);
 	}else{
@@ -364,8 +461,7 @@ void *task(void *arg)
 	return NULL;
 }
 
-void *GetAcessKey(void *arg)
-{
+int GetAcessKey(){
 	int ret = -1;
 	printf("GetAcessKey().\n");
 	memset(access_key,0,128);
@@ -374,8 +470,20 @@ void *GetAcessKey(void *arg)
 		printf("Error Get Access Key.");
 	}
 	
-	return NULL;
+	return ret;
 }
+
+int GetInfo(){
+	int ret = -1;
+	printf("GetInfo().\n");
+	ret = ImCloudInfo();
+	if(ret < 0){
+		printf("Error GetInfo.");
+	}
+	
+	return ret;
+}
+
 
 int getConfig()
 {
@@ -386,7 +494,8 @@ int getConfig()
 	struct json_object *result_object = NULL;
 	struct json_object *infor_object = NULL;
 	int totals;
-	int ret;
+	int ret =-1;
+	int i=0;
 	
 	size = get_file_size(CONFIG_FILE_PATH);
 	
@@ -425,20 +534,28 @@ int getConfig()
 	}
 	
 	json_object_object_get_ex(infor_object, "icloud_activate",&result_object);
-	strcpy(cloud_url[ICLOUD_ACTIVATE],json_object_get_string(result_object));
-	json_object_put(result_object);//free
-	
+	strcpy(cloud_url[ICLOUD_URL_ACTIVATE],json_object_get_string(result_object));
+
+	json_object_object_get_ex(infor_object, "icloud_info",&result_object);
+	strcpy(cloud_url[ICLOUD_URL_INFO],json_object_get_string(result_object));
+		
 	json_object_object_get_ex(infor_object, "icloud_data",&result_object);
-	strcpy(cloud_url[ICLOUD_DATA],json_object_get_string(result_object));
-	json_object_put(result_object);//free
+	strcpy(cloud_url[ICLOUD_URL_DATA],json_object_get_string(result_object));
+	
 	
 	json_object_put(infor_object);//free
 	
-	if(strlen(cloud_url[ICLOUD_ACTIVATE])>0 && strlen(cloud_url[ICLOUD_DATA])>0){
+	for(i=0;i<ICLOUD_URL_MAX;i++){
+		if(strlen(cloud_url[i])==0){
+			ret = -1;
+			break;
+		}
 		ret = 0;
 	}
-	printf("URL = %s\n",cloud_url[ICLOUD_ACTIVATE]);
-	printf("URL = %s\n",cloud_url[ICLOUD_DATA]);
+
+	printf("URL = %s\n",cloud_url[ICLOUD_URL_ACTIVATE]);
+	printf("URL = %s\n",cloud_url[ICLOUD_URL_INFO]);
+	printf("URL = %s\n",cloud_url[ICLOUD_URL_DATA]);
 	
 	if(buf != NULL){
 		free(buf);
@@ -451,14 +568,27 @@ int main(int arg, char *arc[])
 {
 	int ret = 0;
 	
+	if(getLocalMac(mac_addr)<0){
+		printf("Network Error.\n");
+		return ret;
+	}
+	
 	if(getConfig()<0){
 		printf("Config error\n"); 
 		return 0;
 	}
 	
 	thpool = thpool_init(10);
-	thpool_add_work(thpool, (void*)GetAcessKey, NULL);
-	thpool_wait(thpool);
+	
+	if(GetAcessKey()<0){
+		printf("GetAcessKey\n"); 
+		return 0;
+	}
+	
+	if(GetInfo()<0){
+		printf("GetInfo\n"); 
+		return 0;
+	}
 	
 	ret = openInputDev(ADC_DEV_NAME);
 	if(ret){

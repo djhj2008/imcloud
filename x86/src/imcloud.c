@@ -1,3 +1,13 @@
+/* ********************************
+ * Author:       DJ
+ * License:	     NULL
+ * Description:  Main APP.
+ *               For usage, check the imcloud.h file
+ *
+ *//** @file imcloud.h *//*
+ *
+ ********************************/
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,12 +28,14 @@
 #include "http_tool.h"
 #include "im_file.h"
 #include "im_dataform.h"
+#include "imcloud_controller.h"
 
 
 char access_key[128]={0};
 struct waveform global_waveform[FRAMES_GROUP_MAX];
 threadpool thpool;
 
+char mac_addr[MAC_LEN+1]= {0x0};
 char cloud_url[10][256]={0};
 int global_totals;
 int next_totals;
@@ -32,23 +44,17 @@ void setGlobalTotals(int totals){
 	if(totals<5||totals>300)
 	 return;
 	next_totals = totals;
-} 
+}
+
+void setAccessKey(char * key){
+	strcpy(access_key,key);
+}
 
 int ImCloudData( uint8_t * data,int len){
 	char buffer[1024] = {0x0};
-	unsigned char Signature[128]= {0x0};
 	char chunkstr[384]= {0x0};
-	char mac_addr[MAC_LEN+1]= {0x0};
 	int ret = -1;
 	int retry = HTTP_RETRY_MAX;
-	struct json_object *infor_object = NULL;
-	
-	if(getLocalMac(mac_addr)<0){
-		printf("Network Error.\n");
-		return ret;
-	}
-	
-	GenerateSignature(mac_addr,Signature);
 	
 	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac_addr,access_key);
     printf("chunkstr: %s\n",  chunkstr);
@@ -61,41 +67,41 @@ int ImCloudData( uint8_t * data,int len){
 			sleep(5);
 			ret = ImHttpPost(cloud_url[ICLOUD_ACTIVATE],chunkstr,data,len,buffer);
 			if(ret == 0){
-				struct json_object *result_object = NULL; 
-				infor_object = json_tokener_parse(buffer);
-				printf("RECV:%s\n",buffer);
-				json_object_object_get_ex(infor_object, "request",&result_object);        
-				printf("request:%s\n", json_object_get_string(result_object)); 
-				if(strcmp(json_object_get_string(result_object),"interval_change"));
-				{	
-					int totals = 0;
-					json_object_object_get_ex(infor_object, "interval",&result_object);
-					totals = json_object_get_int(result_object);
-					printf("interval:%d\n", totals);    
-					setGlobalTotals(totals);
-				}
-				json_object_put(result_object);//free
-				json_object_put(infor_object);//free
+				CloudDataHandle(buffer);
 			}
 			retry--;
 		}
 	}
 	else{
-		struct json_object *result_object = NULL; 
-		infor_object = json_tokener_parse(buffer);
-		printf("RECV:%s\n",buffer);
-		json_object_object_get_ex(infor_object, "request",&result_object);        
-		printf("request:%s\n", json_object_get_string(result_object)); 
-		if(strcmp(json_object_get_string(result_object),"interval_change"));
-		{	
-			int totals = 0;
-			json_object_object_get_ex(infor_object, "interval",&result_object);
-			totals = json_object_get_int(result_object);
-			printf("interval:%d\n", totals);    
-			setGlobalTotals(totals);
+		CloudDataHandle(buffer);
+	}
+	return ret;
+}
+
+int ImCloudInfo(){
+	char buffer[1024] = {0x0};
+	char chunkstr[384]= {0x0};
+	int ret = -1;
+	int retry = HTTP_RETRY_MAX;
+	
+	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac_addr,access_key);
+    printf("chunkstr: %s\n",  chunkstr);
+
+	ret = ImHttpPost(cloud_url[ICLOUD_ACTIVATE],chunkstr,NULL,0,buffer);
+
+	if(ret < 0){
+		while(retry > 0){
+			printf("ImHttpPost retry: %d,wait 5 sec.\n",retry);
+			sleep(5);
+			ret = ImHttpPost(cloud_url[ICLOUD_DATA],chunkstr,NULL,0,buffer);
+			if(ret == 0){
+				
+			}
+			retry--;
 		}
-		json_object_put(result_object);//free
-		json_object_put(infor_object);//free
+	}
+	else{
+
 	}
 	return ret;
 }
@@ -104,15 +110,8 @@ int ImCloudAccessKey(){
 	char buffer[1024] = {0x0};
 	unsigned char Signature[128]= {0x0};
 	char chunkstr[384]= {0x0};
-	char mac_addr[MAC_LEN+1]= {0x0};
 	int ret = -1;
 	int retry = HTTP_RETRY_MAX;
-	struct json_object *infor_object = NULL;
-	
-	if(getLocalMac(mac_addr)<0){
-		printf("Network Error.\n");
-		return ret;
-	}
 	
 	GenerateSignature(mac_addr,Signature);
 	
@@ -127,41 +126,14 @@ int ImCloudAccessKey(){
 			sleep(5);
 			ret = ImHttpPost(cloud_url[ICLOUD_DATA],chunkstr,NULL,0,buffer);
 			if(ret == 0){
-				struct json_object *result_object = NULL; 
-				infor_object = json_tokener_parse(buffer);
-				json_object_object_get_ex(infor_object, "status",&result_object);        
-				printf("status:%s\n", json_object_get_string(result_object));    
-				json_object_put(result_object);//free
-				json_object_object_get_ex(infor_object, "access_key",&result_object);        
-				printf("access_key:%s\n", json_object_get_string(result_object));    
-				strcpy(access_key,json_object_get_string(result_object)); 
-				json_object_put(result_object);//free
-				json_object_object_get_ex(infor_object, "time",&result_object);    
-				printf("time:%s\n", json_object_to_json_string(result_object));    
-				json_object_put(result_object);//free
-				if(strlen(access_key)!=ACCESS_KEY_SIZE){
-					ret = 0;
-					//break;
-				}
-				json_object_put(infor_object);//free
+				ret = CloudAccessKeyHandle(buffer);
+				break;
 			}
 			retry--;
 		}
 	}
 	else{
-		struct json_object *result_object = NULL; 
-		infor_object = json_tokener_parse(buffer);
-		printf("RECV:%s\n",buffer);
-		json_object_object_get_ex(infor_object, "access_key",&result_object);        
-		//printf("access_key:%s\n", json_object_get_string(result_object));    
-		strcpy(access_key,json_object_get_string(result_object)); 
-		json_object_put(result_object);//free
-		if(strlen(access_key)!=ACCESS_KEY_SIZE){
-			ret = 0;
-		}
-		json_object_put(infor_object);//free
-
-
+		ret = CloudAccessKeyHandle(buffer);
 	}
 	return ret;
 }
@@ -328,9 +300,19 @@ void *task(void *arg)
 	}
 	
 	printf("task().\n");
+	
+	if((access(ADC_TMP_FILE_NAME,F_OK))!=-1)   
+    {   
+		printf("TMP File Del!\n"); 
+		im_delfile(ADC_TMP_FILE_NAME); 
+    }  
+    
 	fd = im_openfile(ADC_TMP_FILE_NAME);
 	if(fd > 0){
 		im_savebuff(fd,(char *)&global_waveform,sizeof(struct waveform)*totals);
+	}else{
+		printf("Error Open TMP File.");
+		return NULL;
 	}
 	im_close(fd);
 	
@@ -450,6 +432,11 @@ int getConfig()
 int main(int arg, char *arc[])
 {
 	int ret = 0;
+	
+	if(getLocalMac(mac_addr)<0){
+		printf("Network Error.\n");
+		return ret;
+	}
 	
 	if(getConfig()<0){
 		printf("Config error\n"); 

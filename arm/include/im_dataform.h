@@ -27,9 +27,9 @@
 
 #pragma pack(1) 
 
+
 /* Input Waveforms */
 struct waveform{
-	/* Input Waveforms */
 	uint32_t time_stamp;
 	int8_t rssi;
 	float w1;
@@ -48,6 +48,11 @@ struct data_header{
 
 #pragma pack()
 /* =================================== API ======================================= */
-uint8_t * GenerateWaveform(char * file,int *len ,int totals);
-ple_uint8_t* ple_decode(struct waveform *waveform_t,int sub_index,uint16_t ucFramesPerGroup ,int *size);
+uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int totals,uint8_t flag);
+ple_uint8_t* ple_decode(struct waveform *waveform_t,
+									int sub_index,
+									uint8_t ucCurrentChannels,
+									uint8_t ucVoltageChannels,
+									uint16_t ucFramesPerGroup ,
+									int *size);
 #endif

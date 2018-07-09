@@ -30,15 +30,31 @@ struct ping_buffer_data{
 	unsigned int sample[ADC_SAMPLE_SIZE];
 };
 
+struct imcloud_info{
+	
+};
+
 enum ICOULD_URL {
-	ICLOUD_ACTIVATE=0,
-	ICLOUD_INFO = 1,
-	ICLOUD_DATA = 2,
+	ICLOUD_URL_ACTIVATE=0,
+	ICLOUD_URL_INFO,
+	ICLOUD_URL_DATA,
+	ICLOUD_URL_MAX,
 };
 /* =================================== API ======================================= */
+void setGlobalTotals(int totals);
+void setAccessKey();
+int GetAcessKey();
+int GetInfo();
 void *task(void *arg);
 int ImCloudData( uint8_t * data,int len);
 int ImCloudAccessKey();
+
+void setIchFlag(int ch);
+void setVchFlag(int ch);
+int getIchannelsCount();
+int getVchannelsCount();
+void resetICHFlag();
+void resetVCHFlag();
 #endif
 
 

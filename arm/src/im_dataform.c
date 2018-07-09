@@ -28,9 +28,8 @@
 #include "im_file.h"
 /* Expected data */
 
-uint8_t * GenerateWaveform(char * file,int *len ,int totals)
+uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int totals,uint8_t flag)
 {
-	uint16_t	ucFramesPerGroup  = totals;  //300
 	int fd;
     char dirpath[MAX_DIRPATH_LEN]={0x0};
 	int h_count,w_count,o_count,plc_count;
@@ -41,6 +40,9 @@ uint8_t * GenerateWaveform(char * file,int *len ,int totals)
 	int remaining = 0;
 	int i=0,j=0;
 	uint8_t *postdata;
+	uint8_t	ucCurrentChannels = ichannels; //4
+	uint8_t	ucVoltageChannels = vchannels; //1
+	uint16_t ucFramesPerGroup  = totals;  //300
 	
 	printf("ucFramesPerGroup  : %d\n", ucFramesPerGroup);
 
@@ -64,7 +66,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,int totals)
 
 	data_header_t.version 	= DATA_FORMAT_VERSION;
 	data_header_t.total 	= ucFramesPerGroup;
-	data_header_t.flag 		= WATTAGE_FLAG|RSSI_FLAG|ALL_CHANNEL_FLAG;
+	data_header_t.flag 		= WATTAGE_FLAG|RSSI_FLAG|flag;
 	data_header_t.igain		= 0;
 	data_header_t.vgain		= 0;
 	data_header_t.start_time= (uint32_t)waveform_t[0].time_stamp;
@@ -84,7 +86,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,int totals)
 	
 	plc_count = (totals + PLC_FRAMES_PER_GROUP_MAX - 1) / PLC_FRAMES_PER_GROUP_MAX;
 	
-	full_size = PLC_HEADER_SIZE*plc_count+(ADC_L_CHANNEL*PLC_L_DATA_SIZE+ADC_V_CHANNEL*PLC_V_DATA_SIZE)*totals;
+	full_size = PLC_HEADER_SIZE*plc_count+(ucCurrentChannels*PLC_L_DATA_SIZE+ucVoltageChannels*PLC_V_DATA_SIZE)*totals;
 	
 	o_count = totals*(sizeof(int8_t)+sizeof(float)+sizeof(float));
 	
@@ -105,7 +107,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,int totals)
 		
 		if(remaining > PLC_FRAMES_PER_GROUP_MAX){
 			
-			ple_uint8_t	*wp= ple_decode(waveform_t,i*PLC_FRAMES_PER_GROUP_MAX,PLC_FRAMES_PER_GROUP_MAX,&result_size);
+			ple_uint8_t	*wp= ple_decode(waveform_t,i*PLC_FRAMES_PER_GROUP_MAX,ucCurrentChannels,ucVoltageChannels,PLC_FRAMES_PER_GROUP_MAX,&result_size);
 		
 			memcpy(postdata+index,wp,result_size);
 			
@@ -135,7 +137,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,int totals)
 			printf("index wat end: %d\n", index);
 						
 		}else{
-			ple_uint8_t	*wp= ple_decode(waveform_t,i*PLC_FRAMES_PER_GROUP_MAX,remaining,&result_size);
+			ple_uint8_t	*wp= ple_decode(waveform_t,i*PLC_FRAMES_PER_GROUP_MAX,ucCurrentChannels,ucVoltageChannels,remaining,&result_size);
 		
 			memcpy(postdata+index,wp,result_size);
 			
@@ -180,7 +182,13 @@ uint8_t * GenerateWaveform(char * file,int *len ,int totals)
 }
 
 
-ple_uint8_t* ple_decode(struct waveform *waveform_t,int sub_index,uint16_t ucFramesPerGroup ,int *size){
+ple_uint8_t* ple_decode(struct waveform *waveform_t,
+									int sub_index,
+									uint8_t ucCurrentChannels,
+									uint8_t ucVoltageChannels,
+									uint16_t ucFramesPerGroup ,
+									int *size)
+{
 	HPLE		hPle = NULL;   /* Encoder */
 	plc_uint8_t	*pucItem = NULL;  /* Encoded data */
 	plc_uint8_t	*rp;
@@ -191,9 +199,6 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,int sub_index,uint16_t ucFra
 	
 	/* Input Attribute */
 	uint8_t		ucFundamentalFrq  = AC_LINE_FREQUENCY; //60
-//	uint8_t		ucCurrentChannels = 4;
-	uint8_t		ucCurrentChannels = ADC_L_CHANNEL; //4
-	uint8_t		ucVoltageChannels = ADC_V_CHANNEL; //1
 	uint8_t		ucSamplesPerFrame = SAMPLES_FRAME; //64
 	int		nChannels;
 	int		i, j, k, l, result_size;
@@ -266,21 +271,16 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,int sub_index,uint16_t ucFra
 		for(l=0;l<nChannels;l++){
 			for(i=0;i<ucSamplesPerFrame;i++){
 				if(l<ucCurrentChannels){
-					ppusWave[l][i] = waveform_t[j+sub_index].data[i+(l+1)*ucSamplesPerFrame];
+					ppusWave[l][i] = waveform_t[j+sub_index].data[i+l*ucSamplesPerFrame];
 				}
 				else {
-					ppusWave[l][i] = waveform_t[j+sub_index].data[i];
+					ppusWave[l][i] = waveform_t[j+sub_index].data[i+(l-ucCurrentChannels+WAVE_V1_CHANNEL)*ucSamplesPerFrame];
 				}
-			}
-			if(l==4){
-				//printf("encode index = %d  ppusWave[%d][0]=%d \n",j,l,ppusWave[l][0]);
-				//printf("encode V=%d \n",waveform_t[j+sub_index].data[0]);
 			}
 		}
 		
-
 		for(i = 0; i < ucSamplesPerFrame; i++){
-			vc = (int16_t)ppusWave[4][i];
+			vc = (int16_t)ppusWave[ucCurrentChannels][i];
 			ch1 = (int16_t)ppusWave[0][i];
 			ch2 = (int16_t)ppusWave[1][i];
 			w1_sum += vc*ch1;

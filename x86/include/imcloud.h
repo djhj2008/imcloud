@@ -32,10 +32,12 @@ struct ping_buffer_data{
 
 enum ICOULD_URL {
 	ICLOUD_ACTIVATE=0,
-	ICLOUD_INFO = 1,
-	ICLOUD_DATA = 2,
+	ICLOUD_INFO,
+	ICLOUD_DATA,
 };
 /* =================================== API ======================================= */
+void setGlobalTotals(int totals);
+void setAccessKey(char *key);
 void *task(void *arg);
 int ImCloudData( uint8_t * data,int len);
 int ImCloudAccessKey();

@@ -17,6 +17,7 @@
 
 #include "imcloud.h"
 #include "imcloud_controller.h"
+#include "global_var.h"
 
 char *imcloud_cmd_t[IMCLOUD_CMD_MAX]={
 	IMCOULD_DATA_NONE_CMD,
@@ -45,7 +46,7 @@ int CloudAccessKeyHandle(char * buf){
 		struct json_object *result_object = NULL;
 		json_object_object_get_ex(infor_object, IMCLOUD_ACCESSKEY_CONTENT,&result_object);        
 		strcpy(key,json_object_get_string(result_object));
-		setAccessKey(key);
+		global_setAccesskey(key);
 		json_object_put(result_object);//free
 		ret = 0;
 	}
@@ -62,7 +63,7 @@ void parseICHStr(char * str){
 	while(token!=NULL){
 		ch=atoi(token);
 		if(ch>=I_CHANNELS_1&&ch<=I_CHANNELS_4){
-			setIchFlag(ch);
+			global_setIchFlag(ch);
 		}
 		token=strtok(NULL,",");
 	}
@@ -74,7 +75,7 @@ void parseVCHStr(char * str){
 	while(token!=NULL){
 		ch=atoi(token);
 		if(ch>=V_CHANNELS_1&&ch<=V_CHANNELS_2){
-			setVchFlag(ch);
+			global_setVchFlag(ch);
 		}
 		token=strtok(NULL,",");
 	}
@@ -95,8 +96,7 @@ int CloudInfoHandle(char * buf){
 	if(strcmp(status,IMCLOUD_ACCESSKEY_RESULT)==0){
 		struct json_object *i_channels_object = NULL;
 		struct json_object *v_channels_object = NULL;
-		resetICHFlag();
-		resetVCHFlag();
+		global_resetCHFlag();
 		
 		json_object_object_get_ex(infor_object, IMCLOUD_INFO_ICH_CONTENT,&i_channels_object);      
 		if(i_channels_object!=NULL){
@@ -139,6 +139,8 @@ void CloudDataHandle(char * buf){
 	}else if(cmd==IMCLOUD_CMD_FW_UPDATE){
 		printf("CMD:FW Update.\n");
 	}else if(cmd==IMCLOUD_CMD_REBOOT){
+		char *exec_argv[] = { "imcloud", "0", 0 };
+		execv("/proc/self/exe", exec_argv);
 		printf("CMD:Reboot.\n");
 	}else if(cmd==IMCLOUD_CMD_INTERVAL_CHANGE){
 		struct json_object *result_object = NULL; 
@@ -146,7 +148,7 @@ void CloudDataHandle(char * buf){
 		json_object_object_get_ex(infor_object, IMCLOUD_DATA_INTERVAL_CONTENT,&result_object);
 		totals = json_object_get_int(result_object);
 		printf("interval:%d\n", totals);    
-		setGlobalTotals(totals);
+		global_setTotals(totals);
 		json_object_put(result_object);//free
 	}else if(cmd==IMCLOUD_CMD_LOGLEVEL_CHANGE){
 		printf("CMD:Loglevel.\n");

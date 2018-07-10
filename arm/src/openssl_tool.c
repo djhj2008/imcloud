@@ -141,7 +141,6 @@ void GenerateSignature(char *mac_addr ,unsigned char  * Signature)
 	printf("Signature: %s\n",  Signature);
 	free(sha256sign);
 	
-	
 }
 
 

@@ -25,6 +25,7 @@
 
 #include "config.h"
 #include "im_dataform.h"
+#include "global_var.h"
 #include "im_file.h"
 /* Expected data */
 
@@ -257,6 +258,7 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 
 	printf("Start Decode.\n");
 
+	global_dumpCH();
 	/* Loop */
 	for(j=0;j<ucFramesPerGroup;j++){
 		float w1_sum = 0;
@@ -266,16 +268,20 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 		int ch2 = 0;
 		float w1 = 0;
 		float w2 = 0;
+		l = 0;
 		/* preparing wave data (1 sec) */
 		//printf("index=%d v=%d l1=%d l2=%d\n",j,waveform_t[j+sub_index].data[0],waveform_t[j+sub_index].data[64],waveform_t[j+sub_index].data[128]);
-		for(l=0;l<nChannels;l++){
-			for(i=0;i<ucSamplesPerFrame;i++){
-				if(l<ucCurrentChannels){
-					ppusWave[l][i] = waveform_t[j+sub_index].data[i+l*ucSamplesPerFrame];
+		for(k=0;k<WAVE_CHANNEL_MAX;k++){
+			int iflag = global_getChFlag(k);
+			if(iflag == ADC_CH_OPEN){
+				for(i=0;i<ucSamplesPerFrame;i++){
+					ppusWave[l][i] = waveform_t[j+sub_index].data[i+k*ucSamplesPerFrame];
 				}
-				else {
-					ppusWave[l][i] = waveform_t[j+sub_index].data[i+(l-ucCurrentChannels+WAVE_V1_CHANNEL)*ucSamplesPerFrame];
-				}
+				l++;
+			}
+			if(l>nChannels){
+				printf("Channels Out :%d\n",nChannels);
+				break;
 			}
 		}
 		

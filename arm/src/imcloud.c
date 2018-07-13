@@ -30,13 +30,14 @@
 #include "im_dataform.h"
 #include "imcloud_controller.h"
 #include "global_var.h"
+#include "im_hiredis.h"
 
 struct waveform global_waveform[FRAMES_GROUP_MAX];
 threadpool thpool;
 
 int ImCloudData( uint8_t * data,int len){
-	char buffer[1024] = {0x0};
-	char chunkstr[384]= {0x0};
+	char buffer[HTTP_RECV_BUF_MAX] = {0x0};
+	char chunkstr[HTTP_CHUNK_HEAD_LEN]= {0x0};
 	int ret = -1;
 	int retry = HTTP_RETRY_MAX;
 	char *mac = global_getMac();
@@ -55,6 +56,7 @@ int ImCloudData( uint8_t * data,int len){
 			ret = ImHttpPost(url,chunkstr,data,len,buffer);
 			if(ret == 0){
 				CloudDataHandle(buffer);
+				break;
 			}
 			retry--;
 		}
@@ -62,13 +64,14 @@ int ImCloudData( uint8_t * data,int len){
 	else{
 		CloudDataHandle(buffer);
 	}
+	printf("ImCloudData end.");
 	return ret;
 }
 
 int ImCloudInfo(){
-	char buffer[1024] = {0x0};
-	char chunkstr[384]= {0x0};
-	char postdata[1024] = {0x0};
+	char buffer[HTTP_RECV_BUF_MAX] = {0x0};
+	char chunkstr[HTTP_CHUNK_HEAD_LEN]= {0x0};
+	char postdata[HTTP_NORMAL_POST_BUF_MAX] = {0x0};
 	int ret = -1;
 	int retry = HTTP_RETRY_MAX;
 	char *mac = global_getMac();
@@ -121,6 +124,7 @@ int ImCloudInfo(){
 			ret = ImHttpPost(url,chunkstr,NULL,0,buffer);
 			if(ret == 0){
 				ret = CloudInfoHandle(buffer);
+				break;
 			}
 			retry--;
 		}
@@ -133,9 +137,9 @@ int ImCloudInfo(){
 }
 
 int ImCloudAccessKey(){
-	char buffer[1024] = {0x0};
-	unsigned char Signature[128]= {0x0};
-	char chunkstr[384]= {0x0};
+	char buffer[HTTP_RECV_BUF_MAX] = {0x0};
+	unsigned char Signature[HTTP_SIGNATURE_LEN]= {0x0};
+	char chunkstr[HTTP_CHUNK_HEAD_LEN]= {0x0};
 	int ret = -1;
 	int retry = HTTP_RETRY_MAX;
 	char *mac = global_getMac();
@@ -297,7 +301,7 @@ int sysInputScan(void)
 			n_totals = global_getNextTotals();
 			printf("global_totals = %d next_totals =%d rssi = %d w1 = %f w2 = %f\n",totals, n_totals,waveform_t[index].rssi,waveform_t[index].w1,waveform_t[index].w2);
 			
-			global_startNextTotals();
+			//global_startNextTotals(); //change when next package
 			
 			index++;
 			if(index == totals){
@@ -343,20 +347,17 @@ void *task(void *arg)
 	int icount = global_getIchannelsCount();
 	int vcount = global_getVchannelsCount();
 	char * key = global_getAccesskey();
+	char filename[32]={0x0};
+	
+	get_filename(filename);
 	
 	global_startNextTotals();
 	
 	flag = global_getIchFlag();
 	
 	printf("task().\n");
-	
-	if((access(ADC_TMP_FILE_NAME,F_OK))!=-1)   
-    {   
-		printf("TMP File Del!\n"); 
-		im_delfile(ADC_TMP_FILE_NAME); 
-    }  
-    
-	fd = im_openfile(ADC_TMP_FILE_NAME);
+	 
+	fd = im_openfile(filename);
 	if(fd > 0){
 		im_savebuff(fd,(char *)&global_waveform,sizeof(struct waveform)*totals);
 	}else{
@@ -365,7 +366,7 @@ void *task(void *arg)
 	}
 	im_close(fd);
 	
-	postdata = GenerateWaveform(ADC_TMP_FILE_NAME,&len,icount,vcount,totals,flag);
+	postdata = GenerateWaveform(filename,&len,icount,vcount,totals,flag);
 	if(postdata!=NULL){
 		printf("post len = %d \n",len);
 	}else{
@@ -383,12 +384,12 @@ void *task(void *arg)
 	}
 
 	if(ImCloudData(postdata,len)==0){
-		im_delfile(ADC_TMP_FILE_NAME);
+		im_delfile(filename);
 	}else{
-		printf( "ImCloud Activate Error.\n");
-		im_backfile(ADC_TMP_FILE_NAME); 
+		printf("ImCloud Activate Error.\n");
+		im_backfile(filename); 
 	}
-	
+	im_backup_dump();
 	free(postdata);
 
 	return NULL;
@@ -432,57 +433,60 @@ int getConfig()
 	
 	size = get_file_size(CONFIG_FILE_PATH);
 	
-	if(size <= 0){
-		printf("Config File Error.\n");
-		return ret;
-	}
-	
-	fd = open(CONFIG_FILE_PATH,O_RDWR);
-	if(fd<0){
-		printf("file open error.\n");
-		return ret;
-	}
-	
-	buf = (char *)malloc(size);
-	
-	count = read(fd,buf,size);
-	if(count<0){
-		printf("file read error.\n");
-		return ret;
-	}
-	close(fd);
-	
-	infor_object = json_tokener_parse(buf);
-	printf("Config:%s\n",buf);
-	json_object_object_get_ex(infor_object, "interval",&result_object);
-	totals = json_object_get_int(result_object);
-	json_object_put(result_object);//free
-	
-	if(totals >=5 && totals <= 300){
-		global_setTotals(totals);
-		global_startNextTotals();
-	}else{
-		global_setTotals(30);
-		global_startNextTotals();
-	}
-	
-	json_object_object_get_ex(infor_object, "icloud_activate",&result_object);
-	global_setUrl(json_object_get_string(result_object),ICLOUD_URL_ACTIVATE);
-
-	json_object_object_get_ex(infor_object, "icloud_info",&result_object);
-	global_setUrl(json_object_get_string(result_object),ICLOUD_URL_INFO);
-	
-	json_object_object_get_ex(infor_object, "icloud_data",&result_object);
-	global_setUrl(json_object_get_string(result_object),ICLOUD_URL_DATA);
-	
-	
-	json_object_put(infor_object);//free
-	
-	for(i=0;i<ICLOUD_URL_MAX;i++){
-		if(strlen(global_getUrl(i))==0){
-			ret = -1;
-			break;
+	if(size>0){
+		fd = open(CONFIG_FILE_PATH,O_RDWR);
+		if(fd<0){
+			printf("Config open error use default.\n");
 		}
+		buf = (char *)malloc(size);
+		
+		count = read(fd,buf,size);
+		
+		if(count<0){
+			printf("file read error.\n");
+		}
+		close(fd);
+		
+		infor_object = json_tokener_parse(buf);
+		printf("Config:%s\n",buf);
+		json_object_object_get_ex(infor_object, "interval",&result_object);
+		totals = json_object_get_int(result_object);
+		json_object_put(result_object);//free
+		
+		if(totals >=GLOBAL_TOTALS_MIN && totals <= GLOBAL_TOTALS_MAX){
+			global_setTotals(totals);
+			global_startNextTotals();
+		}else{
+			global_setTotals(GLOBAL_TOTALS_DEFAULT);
+			global_startNextTotals();
+		}
+		
+		json_object_object_get_ex(infor_object, "icloud_activate",&result_object);
+		global_setUrl(json_object_get_string(result_object),ICLOUD_URL_ACTIVATE);
+
+		json_object_object_get_ex(infor_object, "icloud_info",&result_object);
+		global_setUrl(json_object_get_string(result_object),ICLOUD_URL_INFO);
+		
+		json_object_object_get_ex(infor_object, "icloud_data",&result_object);
+		global_setUrl(json_object_get_string(result_object),ICLOUD_URL_DATA);
+		
+		
+		json_object_put(infor_object);//free
+		
+		for(i=0;i<ICLOUD_URL_MAX;i++){
+			if(strlen(global_getUrl(i))==0){
+				ret = -1;
+				break;
+			}
+			ret = 0;
+		}
+	}
+	if(ret<0){
+		global_setTotals(GLOBAL_TOTALS_DEFAULT);
+		global_startNextTotals();
+		global_setUrl(GLOBAL_URL_ACCESSKEY,ICLOUD_URL_ACTIVATE);
+		global_setUrl(GLOBAL_URL_INFO,ICLOUD_URL_INFO);
+		global_setUrl(GLOBAL_URL_DATA,ICLOUD_URL_DATA);
 		ret = 0;
 	}
 
@@ -501,6 +505,11 @@ int main(int arg, char *arc[])
 {
 	int ret = 0;
 	char mac[MAC_LEN+1]= {0x0};
+
+    /* init redis */
+    if (redis_init()) {
+        return -1;
+    }
 	
 	if(getLocalMac(mac)<0){
 		printf("Network Error.\n");
@@ -546,6 +555,7 @@ int main(int arg, char *arc[])
 			break;
 	}
 	
+	redis_free();
 	thpool_wait(thpool);
 	thpool_destroy(thpool);
 	return ret;  

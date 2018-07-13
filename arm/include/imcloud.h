@@ -17,21 +17,14 @@
 
 #define ADC_SAMPLE_SIZE 192
 
-#define DEFAULT_DIRPATH "./data"
-#define SAVE_DIRPATH "./save"
 #define ADC_TMP_FILE_NAME "tmp.dat"
-
-#define CONFIG_FILE_PATH "./config/cloud.conf"
+#define CONFIG_FILE_PATH "/etc/imcloud.conf"
 
 struct ping_buffer_data{
 	//struct rtc_time tm;
 	unsigned long long time_stamp;
 	unsigned int pnumber[2];
 	unsigned int sample[ADC_SAMPLE_SIZE];
-};
-
-struct imcloud_info{
-	
 };
 
 enum ICOULD_URL {

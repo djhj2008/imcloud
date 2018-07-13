@@ -8,16 +8,19 @@ CFLAGS := -g -lm -O2 -Werror -Wall \
   -I../libcurl/include \
   -I../libssl-dev/include \
   -I../libjson/include \
+  -I../libhiredis/include \
   -lcurl \
   -lssl \
   -lcrypto \
   -ljson-c \
   -lpthread \
   -lple \
+  -lhiredis \
   -L../libcurl/lib \
   -L../libssl-dev/lib \
   -L../libjson/lib \
-  -L../plc_lib_intel
+  -L../plc_lib_intel \
+  -L../libhiredis/lib
 
 
 

@@ -23,6 +23,7 @@ int im_openfile(char* filename);
 int im_savebuff(int fd,char * buf,int len);
 void im_close(int fd);
 int im_delfile(char *filename);
+void get_filename(char * filename);
 int get_file_size(const char *path);
 
 #endif

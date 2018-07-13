@@ -21,36 +21,7 @@
 #include <sys/time.h>
 
 #include "im_file.h"
-
-void dumpconfig()
-{
-	char filename[MAX_BACK_FILE][CONFIG_FILENAME_LEN]={0x0};
-	int fd;
-	int count;
-	int i=0;
-	char dirpath[MAX_DIRPATH_LEN]={0x0};
-	
-	sprintf(dirpath,"%s/config.dat",SAVE_DIRPATH);
-	fd = open(dirpath,O_RDWR);
-	if(fd<0){
-		printf("file open error.\n");
-		return;
-	}
-	
-	
-	count = read(fd,filename,MAX_BACK_FILE*CONFIG_FILENAME_LEN);
-	if(count<0){
-		printf("file read error.\n");
-		return;
-	}
-	
-	for(i=0;i<MAX_BACK_FILE;i++){
-		
-			printf("file:%d name is %s.\n",i,filename[i]);
-		
-	}
-	close(fd);
-}
+#include "im_hiredis.h"
 
 int get_file_size(const char *path)  
 {  
@@ -119,71 +90,6 @@ int im_savebuff(int fd,char * buf,int len)
 void im_close(int fd)
 {
 	close(fd);
-}
-
-
-int im_saveconfig(char * file)
-{	
-	char filename[MAX_BACK_FILE][CONFIG_FILENAME_LEN]={0x0};
-	char temp[MAX_BACK_FILE][CONFIG_FILENAME_LEN]={0x0};
-	char dirpath[MAX_DIRPATH_LEN]={0x0};
-	int i=0;
-	int flag = 0;
-	int fd;
-	int count;
-	
-	printf("saveconfig file :%s \n",file);
-	
-	sprintf(dirpath,"%s/config.dat",SAVE_DIRPATH);
-	fd = open(dirpath,O_RDWR|O_CREAT,0644);
-	if(fd<0){
-		printf("file open error.\n");
-		return -1;
-	}
-	
-	
-	count = read(fd,filename,MAX_BACK_FILE*CONFIG_FILENAME_LEN);
-	if(count<0){
-		printf("file read error.\n");
-		return -1;
-	}
-	close(fd);
-	
-	printf("file read %d.\n",count);
-	
-	fd = open(dirpath,O_RDWR|O_CREAT,0644);
-	for(i=0;i<MAX_BACK_FILE;i++){
-		if(strlen((const char *)filename[i])==0){
-			strcpy(filename[i],file);
-			printf("save file:%d\n",i);
-			flag = 1;
-			break;
-		}else{
-			//printf("save file:%d %s\n",i,filename[i]);
-		}
-	}
-	if(flag == 0){
-		memcpy(temp,filename[1],CONFIG_FILENAME_LEN*(MAX_BACK_FILE-1));
-		strcpy(temp[MAX_BACK_FILE-1],file);
-		count = write(fd,temp,MAX_BACK_FILE*CONFIG_FILENAME_LEN);
-		if(count < 0)
-		{
-			printf("file write error.\n");
-			return -1;	
-		}
-	}else{
-		count = write(fd,filename,MAX_BACK_FILE*CONFIG_FILENAME_LEN);
-		if(count < 0)
-		{
-			printf("file write error.\n");
-			return -1;	
-		}
-	}
-	close(fd);
- 
-	dumpconfig();
-	return -1;
-	
 }
 
 void get_filename(char * filename)
@@ -307,8 +213,8 @@ int im_backfile(char* filename)
 	
 	ret = im_copyfile(src_path,des_path);
 	if(ret == 0 ){
-		im_saveconfig(file_back);
-		remove(src_path);
+		im_backup_push(file_back);
+		im_delfile(filename);
 	}
 	return ret;
 }

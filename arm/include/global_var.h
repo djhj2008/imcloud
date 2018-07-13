@@ -9,6 +9,14 @@
 
 #include "imcloud.h"
 
+#define GLOBAL_TOTALS_MIN 5
+#define GLOBAL_TOTALS_MAX 300
+
+#define GLOBAL_TOTALS_DEFAULT 10
+#define GLOBAL_URL_ACCESSKEY "https://iot.xunrun.com.cn/base/index.php/Home/time/accesskey"
+#define GLOBAL_URL_INFO "https://iot.xunrun.com.cn/base/index.php/Home/time/info"
+#define GLOBAL_URL_DATA "https://iot.xunrun.com.cn/base/index.php/Home/time/uploadadc"
+
 /* =================================== API ======================================= */
 void global_setAccessKey(char * key);
 int global_getNextTotals();

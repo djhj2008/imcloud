@@ -18,7 +18,6 @@
 #include "imcloud.h"
 
 uint8_t ch_flag[WAVE_CHANNEL_MAX];
-
 char access_key[128]={0};
 char mac_addr[MAC_LEN+1]= {0x0};
 char cloud_url[10][256]={0};
@@ -47,14 +46,14 @@ char * global_getMac()
 	return mac_addr;
 }
 
-char * global_getUrl(enum ICOULD_URL index)
-{
-	return cloud_url[index];
-}
-
 void global_setUrl(const char *url,enum ICOULD_URL index)
 {
 	strcpy(cloud_url[index],url);
+}
+
+char * global_getUrl(enum ICOULD_URL index)
+{
+	return cloud_url[index];
 }
 
 void global_setIchFlag(int ich)
@@ -85,8 +84,6 @@ int global_getChFlag(int ch)
 {
 	return ch_flag[ch];
 }
-
-
 
 uint8_t global_getIchFlag()
 {

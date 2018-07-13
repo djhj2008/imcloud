@@ -50,8 +50,13 @@ size_t copy_data(void *ptr, size_t size, size_t nmemb, void *userp)
 		return 0;  
 
 	res_size = size * nmemb;
-	memcpy(rooh->readptr + rooh->sizeleft, ptr, res_size);	
-	rooh->sizeleft += res_size;
+	
+	printf("recv:%d,left:%ld\n",res_size,rooh->sizeleft);
+	if(rooh->sizeleft+res_size < HTTP_RECV_BUF_MAX)
+	{
+		memcpy(rooh->readptr + rooh->sizeleft, ptr, res_size);	
+		rooh->sizeleft += res_size;
+	}
 	return res_size;
 }
 

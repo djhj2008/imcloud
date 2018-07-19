@@ -70,6 +70,7 @@ enum IMCOULD_CMD {
 
 /* =================================== API ======================================= */
 int CloudAccessKeyHandle(char * buf);
+int GenerateInfoData(char * postdata);
 int CloudInfoHandle(char * buf);
 void CloudDataHandle(char * buf);
 int CloudGetCMD(char * req);

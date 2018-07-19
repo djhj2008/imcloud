@@ -1,18 +1,27 @@
-/* ********************************
- * Author:       DJ
- * License:	     NULL
- * Description:  Main APP.
- *               For usage, check the imcloud.h file
- *
- *//** @file imcloud.h *//*
- *
- ********************************/
+/*************************************************
+Copyright (C), 2018-2019, Tech. Co., Ltd.
+File name: imcloud.c
+Author:doujun
+Version:1.0
+Date:2018-07-19
+Description: Main Fuction.
+* Get data from adc7606.
+* Packed data (Use PLE encode)
+* Uploading with HTTP  protocol
+* Backup data for uploading failed and Re-Upload.
+Others: NULL
+Function List:
+1.
+* 
+* @file imcloud.h 
+* 
+*************************************************/
 
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>  
-#include <unistd.h> //sleep include
+#include <unistd.h>
 #include <linux/input.h>  
 #include <fcntl.h>  
 #include <linux/rtc.h>
@@ -21,6 +30,7 @@
 
 #include <json-c/json.h>
 
+#include "im_log.h"
 #include "imcloud.h"
 #include "thpool.h"
 #include "openssl_tool.h"
@@ -32,27 +42,52 @@
 #include "global_var.h"
 #include "im_hiredis.h"
 
+/*Global wave cache data for uploading info @im_dataform.h */
 struct waveform global_waveform[FRAMES_GROUP_MAX];
+/*Global Thread pool info @thpool.h */
 threadpool thpool;
 
+
+/*************************************************
+Function: ImCloudData
+Description: Uploading data (to HTTP Server)
+Calls: 
+* global_getMac 
+* global_getAccesskey
+* global_getUrl
+* ImHttpPost
+* CloudDataHandle
+Called By:
+* task
+Table Accessed: NULL
+Table Updated: NULL
+Input:
+* @param data	uploading data
+* @param data	uploading data length
+* @param data	Http Error retry times (HTTP_RETRY_NONE,HTTP_RETRY_MAX...)	@imcloud.h
+
+Output: 
+* @return 0 	uploading success
+* @return -1 	uploading failed(net or server errors...)
+*************************************************/
 int ImCloudData( uint8_t * data,int len,int try){
 	char buffer[HTTP_RECV_BUF_MAX] = {0x0};
 	char chunkstr[HTTP_CHUNK_HEAD_LEN]= {0x0};
 	int ret = -1;
-	int retry = try;//HTTP_RETRY_MAX;
+	int retry = try;
 	char *mac = global_getMac();
 	char *key = global_getAccesskey();
 	char *url = global_getUrl(ICLOUD_URL_DATA);
 	
 	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac,key);
-    printf("chunkstr: %s\n",  chunkstr);
+    imlogV("chunkstr: %s\n",  chunkstr);
 
 	ret = ImHttpPost(url,chunkstr,data,len,buffer);
 
 	if(ret < 0){
-		printf("CloudDataHandle Error:%s\n",buffer);
+		imlogE("CloudDataHandle Error:%s\n",buffer);
 		while(retry > 0){
-			printf("ImHttpPost retry: %d,wait 5 sec.\n",  retry);
+			imlogE("ImHttpPost retry: %d,wait 5 sec.\n",  retry);
 			sleep(5);
 			ret = ImHttpPost(url,chunkstr,data,len,buffer);
 			if(ret == 0){
@@ -65,10 +100,30 @@ int ImCloudData( uint8_t * data,int len,int try){
 	else{
 		CloudDataHandle(buffer);
 	}
-	printf("ImCloudData end.\n");
+	imlogV("ImCloudData end.\n");
 	return ret;
 }
 
+/*************************************************
+Function: ImCloudInfo
+Description: Get WaveForm Info i_channels v_channels
+Calls: 
+* global_getMac 
+* global_getAccesskey
+* global_getUrl
+* GenerateInfoData
+* ImHttpPost
+* CloudInfoHandle
+Called By:
+* GetCHInfo @main 
+Table Accessed: NULL
+Table Updated: NULL
+Input:
+* @param NULL
+Output: 
+* @return 0 	get channels success
+* @return -1 	get channels failed(net or server errors...)
+*************************************************/
 int ImCloudInfo(){
 	char buffer[HTTP_RECV_BUF_MAX] = {0x0};
 	char chunkstr[HTTP_CHUNK_HEAD_LEN]= {0x0};
@@ -79,48 +134,22 @@ int ImCloudInfo(){
 	char *key = global_getAccesskey();
 	char *url = global_getUrl(ICLOUD_URL_INFO);
 	
-	struct json_object *infor_object = NULL;
-	infor_object = json_object_new_object();
-	if (NULL == infor_object)
-	{
-		printf("ImCloudInfo new json object failed.\n");
-		return -1;
+
+    ret = GenerateInfoData(postdata);
+    if(ret<0){
+		imlogE("GenerateInfoData Error.\n");
+	}else{
+		imlogV("ImCloudInfo Post:%s \n",postdata);
 	}
-	
-	struct json_object *array_object = NULL;
-    array_object = json_object_new_array();
-    if (NULL == array_object)
-    {
-        json_object_put(infor_object);//free
-        printf("new json object failed.\n");
-        return -1;
-    }
-    
-    json_object_array_add(array_object, json_object_new_int(256));
-    json_object_array_add(array_object, json_object_new_int(257));
-    json_object_array_add(array_object, json_object_new_int(258));
-    json_object_object_add(infor_object, "array", array_object);
-    
-	json_object_object_add(infor_object, "fw_version", json_object_new_int(4097));
-	json_object_object_add(infor_object, "booted_at", json_object_new_int64(1234567890));
-	json_object_object_add(infor_object, "manufacturer", json_object_new_string("xxxx"));
-	json_object_object_add(infor_object, "model_number", json_object_new_int(0));
-	json_object_object_add(infor_object, "hw_version", json_object_new_int(4097));
-	strcpy(postdata,json_object_to_json_string(infor_object));
-	
-	printf("ImCloudInfo Post:%s \n",postdata);
-	
-	json_object_put(array_object);//free
-    json_object_put(infor_object);//free
     
 	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac,key);
-    printf("chunkstr: %s\n",  chunkstr);
+    imlogV("chunkstr: %s\n",  chunkstr);
 
 	ret = ImHttpPostStr(url,chunkstr,(uint8_t *)postdata,strlen(postdata),buffer);
 
 	if(ret < 0){
 		while(retry > 0){
-			printf("ImHttpPost retry: %d,wait 5 sec.\n",retry);
+			imlogE("ImHttpPost retry: %d,wait 5 sec.\n",retry);
 			sleep(5);
 			ret = ImHttpPostStr(url,chunkstr,NULL,0,buffer);
 			if(ret == 0){
@@ -137,6 +166,25 @@ int ImCloudInfo(){
 	return ret;
 }
 
+/*************************************************
+Function: ImCloudAccessKey
+Description: Get AccessKey Info
+Calls: 
+* global_getMac 
+* global_getAccesskey
+* global_getUrl
+* ImHttpPost
+* CloudAccessKeyHandle
+Called By:
+* GetAcessKey @main 
+Table Accessed: NULL
+Table Updated: NULL
+Input:
+* @param NULL
+Output: 
+* @return 0 	get access_key success
+* @return -1 	get access_key failed(net or server errors...)
+*************************************************/
 int ImCloudAccessKey(){
 	char buffer[HTTP_RECV_BUF_MAX] = {0x0};
 	unsigned char Signature[HTTP_SIGNATURE_LEN]= {0x0};
@@ -149,13 +197,13 @@ int ImCloudAccessKey(){
 	GenerateSignature(mac,Signature);
 	
 	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac,Signature);
-    printf("chunkstr: %s\n",  chunkstr);
+    imlogV("chunkstr: %s\n",  chunkstr);
 
 	ret = ImHttpPost(url,chunkstr,NULL,0,buffer);
 
 	if(ret < 0){
 		while(retry > 0){
-			printf("ImHttpPost retry: %d,wait 5 sec.\n",retry);
+			imlogE("ImHttpPost retry: %d,wait 5 sec.\n",retry);
 			sleep(5);
 			ret = ImHttpPost(url,chunkstr,NULL,0,buffer);
 			if(ret == 0){
@@ -192,6 +240,25 @@ int openInputDev(const char* inputName)
     return 0;
 }
 
+/*************************************************
+Function: sysInputScan
+Description: Get adc data from dev adc7606
+Calls: 
+* global_getMac 
+* global_getAccesskey
+* global_getUrl
+* ImHttpPost
+* CloudAccessKeyHandle
+Called By:
+* main
+Table Accessed: NULL
+Table Updated: NULL
+Input:
+* @param NULL
+Output: 
+* @return 0 	get data success
+* @return -1 	device error
+*************************************************/
 int sysInputScan(void)  
 {  
     int l_ret = -1;  
@@ -211,7 +278,7 @@ int sysInputScan(void)
 	int vc = 0,ch1 = 0,ch2 = 0;
 	int totals=0,n_totals=0;
 
-    printf("enter sysInputScan.\n");
+    imlogV("enter sysInputScan.\n");
     
     memset(waveform_t,0,sizeof(struct waveform)*FRAMES_GROUP_MAX);
     
@@ -221,16 +288,14 @@ int sysInputScan(void)
     
     if(dev_fd <= 0)
     {  
-        printf("adc7606 open devName : %s error\n", devName);  
+        imlogE("adc7606 open devName : %s error\n", devName);  
         return l_ret;  
     }  
 
     if (ioctl(dev_fd, 1, 1)) {
-        printf("adc7606 ioctl set enable failed!\n");  
+        imlogE("adc7606 ioctl set enable failed!\n");  
         return -1;
     }
-
-	
 
     while(1)  
     {
@@ -241,12 +306,13 @@ int sysInputScan(void)
         {
 			waveform_t[index].time_stamp=(uint32_t)ping_data.time_stamp;
 			if(index==0){
-				printf("start time stamp: %d \n", waveform_t[index].time_stamp);
+				imlogV("start time stamp: %d \n", waveform_t[index].time_stamp);
 			}else{
-				printf("index: %d time stamp: %d \n",index, waveform_t[index].time_stamp);
+				imlogV("index: %d time stamp: %d \n",index, waveform_t[index].time_stamp);
 			}
-			for(i = 0; i< 2; i++)
-				printf("pnumber[%d]= 0x%x\n", i, ping_data.pnumber[i]);  
+			for(i = 0; i< 2; i++){
+				imlogV("pnumber[%d]= 0x%x\n", i, ping_data.pnumber[i]);
+			}
 			for(ch = 0; ch < ADC_SAMPLE_CHANNEL; ch++){
 				int flag = ch % 2;
 
@@ -260,7 +326,6 @@ int sysInputScan(void)
 						old_val = (ping_data.sample[(sample * 3) + (ch/2)] >> 16) & 0xffff;
 					}
 					val = old_val;
-					//printf("CH[%d] = %d\n", ch, val);
 					if(ch == ADC_V1_CHANNEL){
 						waveform_t[index].data[WAVE_V1_CHANNEL*SAMPLES_FRAME+sample]=val;
 					}else if(ch == ADC_V2_CHANNEL){
@@ -286,9 +351,6 @@ int sysInputScan(void)
 				vc = waveform_t[index].data[V_channel*SAMPLES_FRAME+sample];
 				ch1 = waveform_t[index].data[L1_channel*SAMPLES_FRAME+sample];
 				ch2 = waveform_t[index].data[L2_channel*SAMPLES_FRAME+sample];
-				if(sample==0){
-					//printf("CH[v] = %d CH[L1] = %d CH[L2] = %d\n", vc, ch1,ch2);
-				}
 				w1_sum += vc*ch1;
 				w2_sum += vc*ch2;
 			}
@@ -300,13 +362,13 @@ int sysInputScan(void)
 			
 			totals = global_getTotals();
 			n_totals = global_getNextTotals();
-			printf("global_totals = %d next_totals =%d rssi = %d w1 = %f w2 = %f\n",totals, n_totals,waveform_t[index].rssi,waveform_t[index].w1,waveform_t[index].w2);
+			imlogV("global_totals = %d next_totals =%d rssi = %d w1 = %f w2 = %f\n",totals, n_totals,waveform_t[index].rssi,waveform_t[index].w1,waveform_t[index].w2);
 			
 			//global_startNextTotals(); //change when next package
 			
 			index++;
 			if(index == totals){
-				//printf("wave_size:%d,otherform_t:%d \n",sizeof(waveform_t),sizeof(otherform_t));
+				//imlogV("wave_size:%d,otherform_t:%d \n",sizeof(waveform_t),sizeof(otherform_t));
 				memcpy(global_waveform,waveform_t,sizeof(struct waveform)*totals);
 
 				memset(waveform_t,0,sizeof(struct waveform)*FRAMES_GROUP_MAX);
@@ -316,7 +378,7 @@ int sysInputScan(void)
 				
 			}else if(index > totals){
 				int remaining = index-totals;
-				printf("remaining:%d \n",remaining);
+				imlogV("remaining:%d \n",remaining);
 				memcpy(global_waveform,waveform_t,sizeof(struct waveform)*totals);
 				
 				memcpy(waveform_t,&waveform_t[totals],sizeof(struct waveform)*remaining);
@@ -329,7 +391,7 @@ int sysInputScan(void)
     }  
 
     if (ioctl(dev_fd, 1, 0)) {
-        printf("adc7606 ioctl set disable failed!\n");  
+        imlogE("adc7606 ioctl set disable failed!\n");  
         return -1;
     }
     close(dev_fd);  
@@ -337,7 +399,29 @@ int sysInputScan(void)
     return l_ret;  
       
 }  
-	
+
+
+/*************************************************
+Function: task
+Description: Uploading data thread fuction 
+Calls: 
+* global_getTotals 
+* global_getIchannelsCount
+* global_getVchannelsCount
+* im_redis_get_backup_len
+* GenerateWaveform
+* ImCloudData
+* im_delfile
+* im_redis_pop_head
+Called By:
+* main
+Table Accessed: NULL
+Table Updated: NULL
+Input:
+* @param NULL
+Output: 
+* @return NULL 	
+*************************************************/
 void *task(void *arg)
 {
 	int fd;
@@ -351,8 +435,6 @@ void *task(void *arg)
 	char filepath[CONFIG_FILEPATH_LEN]={0x0};
 	int backup_len = 0;
 	int i=0;
-	//char name[CONFIG_FILENAME_LEN]={0x0};
-	//char file[CONFIG_FILEPATH_LEN]={0x0};
 	
 	get_filename(filename);
 	
@@ -360,39 +442,17 @@ void *task(void *arg)
 	
 	flag = global_getIchFlag();
 	
-	printf("task().\n");
+	imlogV("task().\n");
 	 
 	fd = im_openfile(filename);
 	if(fd > 0){
 		im_savebuff(fd,(char *)&global_waveform,sizeof(struct waveform)*totals);
 	}else{
-		printf("Error Open TMP File.");
+		imlogE("Error Open TMP File.");
 		return NULL;
 	}
 	im_close(fd);
 	
-	/*
-	len = 0;
-	im_redis_get_list_head(name);
-	sprintf(file,"%s/%s",DEFAULT_DIRPATH,name);
-	printf("backup file:%s \n",file);
-	postdata = GenerateWaveform(file,&len,icount,vcount,totals,flag);
-	if(postdata!=NULL){
-		printf("post len = %d \n",len);
-		if(ImCloudData(postdata,len,HTTP_RETRY_NONE)==0){
-			//im_delfile(file);
-			//im_redis_pop_head();
-			printf("ImCloud Send Backup OK.\n");
-		}else{
-			printf("ImCloud Send Backup Error.\n");
-		}
-		free(postdata);
-		return NULL;
-	}else{
-		printf("postdata NULL \n");
-		return NULL;
-	}
-	*/		
 	backup_len = im_redis_get_backup_len();
 	
 	
@@ -404,20 +464,20 @@ void *task(void *arg)
 			len = 0;
 			im_redis_get_list_head(name);
 			sprintf(file,"%s/%s.bak",SAVE_DIRPATH,name);
-			printf("backup file:%s \n",file);
+			imlogE("backup file:%s \n",file);
 			postdata = GenerateWaveform(file,&len,icount,vcount,totals,flag);
 			if(postdata!=NULL){
 				printf("post len = %d \n",len);
 				if(ImCloudData(postdata,len,HTTP_RETRY_NONE)==0){
 					im_delfile(file);
 					im_redis_pop_head();
-					printf("ImCloud Send Backup OK.\n");
+					imlogE("ImCloud Send Backup OK.\n");
 				}else{
-					printf("ImCloud Send Backup Error.\n");
+					imlogE("ImCloud Send Backup Error.\n");
 				}
 				free(postdata);
 			}else{
-				printf("postdata NULL \n");
+				imlogE("postdata NULL \n");
 			}
 		}
 	}
@@ -427,16 +487,16 @@ void *task(void *arg)
 	sprintf(filepath,"%s/%s",DEFAULT_DIRPATH,filename);
 	postdata = GenerateWaveform(filepath,&len,icount,vcount,totals,flag);
 	if(postdata!=NULL){
-		printf("post len = %d \n",len);
+		imlogV("post len = %d \n",len);
 	}else{
-		printf("postdata NULL \n");
+		imlogE("postdata NULL \n");
 		return NULL;
 	}
 	
 	if(ImCloudData(postdata,len,HTTP_RETRY_MAX)==0){
 		im_delfile(filepath);
 	}else{
-		printf("ImCloud Activate Error.\n");
+		imlogE("ImCloud Activate Error.\n");
 		im_backfile(filename); 
 	}
 	im_redis_backup_dump();
@@ -445,30 +505,73 @@ void *task(void *arg)
 	return NULL;
 }
 
+/*************************************************
+Function: GetAcessKey
+Description: @ImCloudAccessKey
+Calls: 
+* ImCloudAccessKey
+Called By:
+* main
+Table Accessed: NULL
+Table Updated: NULL
+Input:
+* @param NULL
+Output: 
+* @return @ImCloudAccessKey
+*************************************************/
 int GetAcessKey(){
 	int ret = -1;
-	printf("GetAcessKey().\n");
+	imlogV("GetAcessKey().\n");
 	
 	ret = ImCloudAccessKey();
 	if(ret < 0){
-		printf("Error Get Access Key.");
+		imlogE("Error Get Access Key.");
 	}
 	
 	return ret;
 }
 
-int GetInfo(){
+/*************************************************
+Function: GetAcessKey
+Description: @ImCloudAccessKey
+Calls: 
+* ImCloudInfo
+Called By:
+* main
+Table Accessed: NULL
+Table Updated: NULL
+Input:
+* @param NULL
+Output: 
+* @return @ImCloudAccessKey
+*************************************************/
+int GetCHInfo(){
 	int ret = -1;
-	printf("GetInfo().\n");
+	imlogV("GetInfo().\n");
 	ret = ImCloudInfo();
 	if(ret < 0){
-		printf("Error GetInfo.");
+		imlogE("Error GetInfo.");
 	}
 	
 	return ret;
 }
 
-
+/*************************************************
+Function: getConfig
+Description: get URL TOTALS form config file.
+Calls: 
+* global_setTotals
+* global_startNextTotals
+* global_setUrl
+Called By:
+* main
+Table Accessed: NULL
+Table Updated: NULL
+Input:
+* @param NULL
+Output: 
+* @return @ImCloudAccessKey
+*************************************************/
 int getConfig()
 {
 	int fd;
@@ -486,19 +589,19 @@ int getConfig()
 	if(size>0){
 		fd = open(CONFIG_FILE_PATH,O_RDWR);
 		if(fd<0){
-			printf("Config open error use default.\n");
+			imlogE("Config open error use default.\n");
 		}
 		buf = (char *)malloc(size);
 		
 		count = read(fd,buf,size);
 		
 		if(count<0){
-			printf("file read error.\n");
+			imlogE("file read error.\n");
 		}
 		close(fd);
 		
 		infor_object = json_tokener_parse(buf);
-		printf("Config:%s\n",buf);
+		imlogV("Config:%s\n",buf);
 		json_object_object_get_ex(infor_object, "interval",&result_object);
 		totals = json_object_get_int(result_object);
 		json_object_put(result_object);//free
@@ -540,9 +643,9 @@ int getConfig()
 		ret = 0;
 	}
 
-	printf("URL = %s\n",global_getUrl(ICLOUD_URL_ACTIVATE));
-	printf("URL = %s\n",global_getUrl(ICLOUD_URL_INFO));
-	printf("URL = %s\n",global_getUrl(ICLOUD_URL_DATA));
+	imlogV("URL = %s\n",global_getUrl(ICLOUD_URL_ACTIVATE));
+	imlogV("URL = %s\n",global_getUrl(ICLOUD_URL_INFO));
+	imlogV("URL = %s\n",global_getUrl(ICLOUD_URL_DATA));
 	
 	if(buf != NULL){
 		free(buf);
@@ -551,51 +654,76 @@ int getConfig()
 }
 
 
+/*************************************************
+Function: main
+Description: MAIN
+Calls: 
+* thpool_init
+* redis_init
+* getLocalMac
+* global_setMac
+* getConfig
+* GetAcessKey
+* GetCHInfo
+* enum_devices
+* sysInputScan
+* redis_free
+* thpool_wait
+* thpool_destroy
+Called By:
+* main
+Table Accessed: NULL
+Table Updated: NULL
+Input:
+* @param NULL
+Output: 
+* @return <=0 Init Config Error or ADC7606 Devices Error.
+*************************************************/
 int main(int arg, char *arc[])
 {
 	int ret = 0;
 	char mac[MAC_LEN+1]= {0x0};
 
+	thpool = thpool_init(10);
+	
     /* init redis */
     if (redis_init()) {
-        return -1;
+		goto Finish;
     }
 	
 	if(getLocalMac(mac)<0){
-		printf("Network Error.\n");
-		return ret;
+		imlogE("Network Error.\n");
+		goto Finish;
+	}else{
+		global_setMac(mac);
 	}
-	
-	global_setMac(mac);
 	
 	if(getConfig()<0){
-		printf("Config error\n"); 
-		return 0;
+		imlogE("Config error\n"); 
+		goto Finish;
 	}
-	
-	thpool = thpool_init(10);
 	
 	if(GetAcessKey()<0){
-		printf("GetAcessKey\n"); 
-		return 0;
+		imlogE("GetAcessKey\n"); 
+		goto Finish;
 	}
 	
-	if(GetInfo()<0){
-		printf("GetInfo\n"); 
-		return 0;
+	if(GetCHInfo()<0){
+		imlogE("GetInfo\n"); 
+		goto Finish;
 	}
 	
 	ret = openInputDev(ADC_DEV_NAME);
 	if(ret){
-		printf("adc7606 open device error\n");  
-		return 0;
+		imlogE("adc7606 open device error\n");  
+		goto Finish;
 	} else {
-		printf("adc7606 input device dir: %s%s\n", ADC_DEV_PATH_NAME, ADC_DEV_NAME);  
+		imlogV("adc7606 input device dir: %s%s\n", ADC_DEV_PATH_NAME, ADC_DEV_NAME);  
 	}
 	
 	if(enum_devices()!=0){
-		printf("WIFI error\n");  
-		return 0;
+		imlogE("WIFI error\n");  
+		goto Finish;
 	}
 
 	while(1)
@@ -604,7 +732,9 @@ int main(int arg, char *arc[])
 		if(ret <=0)
 			break;
 	}
-	
+
+
+Finish:	
 	redis_free();
 	thpool_wait(thpool);
 	thpool_destroy(thpool);

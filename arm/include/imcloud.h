@@ -38,7 +38,7 @@ enum ICOULD_URL {
 void setGlobalTotals(int totals);
 void setAccessKey();
 int GetAcessKey();
-int GetInfo();
+int GetCHInfo();
 void *task(void *arg);
 int ImCloudData( uint8_t * data,int len,int try);
 int ImCloudAccessKey();

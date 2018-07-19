@@ -15,6 +15,7 @@
 
 #include <json-c/json.h>
 
+#include "im_log.h"
 #include "imcloud.h"
 #include "imcloud_controller.h"
 #include "global_var.h"
@@ -80,6 +81,44 @@ void parseVCHStr(char * str){
 		token=strtok(NULL,",");
 	}
 }
+
+int GenerateInfoData(char * postdata)
+{
+	struct json_object *infor_object = NULL;
+	infor_object = json_object_new_object();
+	if (NULL == infor_object)
+	{
+		imlogE("ImCloudInfo new json object failed.\n");
+		return -1;
+	}
+	
+	struct json_object *array_object = NULL;
+    array_object = json_object_new_array();
+    if (NULL == array_object)
+    {
+        json_object_put(infor_object);//free
+        imlogE("new json object failed.\n");
+        return -1;
+    }
+    
+    json_object_array_add(array_object, json_object_new_int(256));
+    json_object_array_add(array_object, json_object_new_int(257));
+    json_object_array_add(array_object, json_object_new_int(258));
+    json_object_object_add(infor_object, "array", array_object);
+    
+	json_object_object_add(infor_object, "fw_version", json_object_new_int(4097));
+	json_object_object_add(infor_object, "booted_at", json_object_new_int64(1234567890));
+	json_object_object_add(infor_object, "manufacturer", json_object_new_string("xxxx"));
+	json_object_object_add(infor_object, "model_number", json_object_new_int(0));
+	json_object_object_add(infor_object, "hw_version", json_object_new_int(4097));
+	strcpy(postdata,json_object_to_json_string(infor_object));
+	
+	json_object_put(array_object);//free
+    json_object_put(infor_object);//free	
+	
+	return 0;
+}
+
 
 int CloudInfoHandle(char * buf){
 	struct json_object *infor_object = NULL;

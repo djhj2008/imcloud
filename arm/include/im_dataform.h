@@ -30,15 +30,16 @@
 
 /* Input Waveforms */
 struct waveform{
-	uint32_t time_stamp;
-	int8_t rssi;
-	float w1;
-	float w2;
-	int16_t data[ADC_SAMPLE_CHANNEL*SAMPLES_FRAME];
+	uint32_t time_stamp;	//data time stamp
+	int8_t rssi;			//wifi signal intensity
+	float w1;				//line L1 capacity.
+	float w2;				//line L2 capacity.
+	int16_t data[ADC_SAMPLE_CHANNEL*SAMPLES_FRAME];	//Data for six channels. info @config.h
 };
 
+/* Upload data head */
 struct data_header{
-	uint8_t version;
+	uint8_t version;	//version always
 	uint16_t total;
 	uint8_t flag;
 	float igain;

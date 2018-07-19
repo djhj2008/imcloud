@@ -10,6 +10,7 @@
 #define ACCESS_KEY_SIZE 64
 
 #define MAC_LEN 12
+#define HTTP_RETRY_NONE 0
 #define HTTP_RETRY_MAX 3
 
 #define  ADC_DEV_NAME    "adc7606_regs"  
@@ -39,7 +40,7 @@ void setAccessKey();
 int GetAcessKey();
 int GetInfo();
 void *task(void *arg);
-int ImCloudData( uint8_t * data,int len);
+int ImCloudData( uint8_t * data,int len,int try);
 int ImCloudAccessKey();
 
 void setIchFlag(int ch);

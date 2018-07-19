@@ -20,12 +20,11 @@
 
 
 /* =================================== API ======================================= */
-int redis_test(const char *cmd);
-int redis_init();
+int im_redis_backup_dump();
+int im_redis_get_backup_len();
+int im_redis_pop_head();
+int im_redis_get_list_head(char *file);
+int im_redis_backup_push(char * name);
 void redis_free();
-int im_backup_push(char * name);
-int im_get_backup_len();
-int im_backup_dump();
-
-
+int redis_init();
 #endif

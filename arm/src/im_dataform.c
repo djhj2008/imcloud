@@ -32,11 +32,10 @@
 uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int totals,uint8_t flag)
 {
 	int fd;
-    char dirpath[MAX_DIRPATH_LEN]={0x0};
 	int h_count,w_count,o_count,plc_count;
 	struct waveform 	waveform_t[FRAMES_GROUP_MAX];
 	struct data_header  data_header_t;
-	int result_size = 0 ,full_size = 0;
+	int result_size = 0 ,full_size = 0 ,file_size = 0;
 	int index = 0;
 	int remaining = 0;
 	int i=0,j=0;
@@ -44,19 +43,37 @@ uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int
 	uint8_t	ucCurrentChannels = ichannels; //4
 	uint8_t	ucVoltageChannels = vchannels; //1
 	uint16_t ucFramesPerGroup  = totals;  //300
+	int file_totals=0;
 	
 	printf("ucFramesPerGroup  : %d\n", ucFramesPerGroup);
 
-
-	sprintf(dirpath,"./data/%s",file);
+	file_size = get_file_size(file);
 	
-	fd = open(dirpath,O_RDWR);
+	if(file_size > 0){
+		if(file_size%sizeof(struct waveform)==0){
+			file_totals = file_size/sizeof(struct waveform);
+		}else{
+			printf("file format error.filesize=%d,block=%d.\n",file_size,sizeof(struct waveform));
+			return NULL;
+		}
+	
+	}else{
+		printf("file size error.\n");
+		return NULL;	
+	}
+
+	if(file_totals!=totals){
+		ucFramesPerGroup = file_totals;
+		printf("ChangeTotals File totals = %d curTotals=%d.\n",file_totals,totals);
+	}
+	
+	fd = open(file,O_RDWR);
 	if(fd<0){
 		printf("file open error.\n");
 		return NULL;
 	}
 
-	w_count = read(fd,waveform_t,sizeof(struct waveform)*totals);
+	w_count = read(fd,waveform_t,sizeof(struct waveform)*ucFramesPerGroup);
 	
 	if(w_count<0){
 		printf("file read error.\n");
@@ -77,7 +94,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int
 	printf("flag : %d\n", data_header_t.flag );
 	printf("start_time : %d\n", data_header_t.start_time);
 	
-	for(i=0;i<totals;i++){
+	for(i=0;i<ucFramesPerGroup;i++){
 		//printf("index = %d rssi = %d w1 = %f w2 = %f \n", i,waveform_t[i].rssi,waveform_t[i].w1,waveform_t[i].w2);
 		//printf(" data v=%d l1=%d l2=%d\n",waveform_t[i].data[0],waveform_t[i].data[64],waveform_t[i].data[128]);
 		
@@ -85,11 +102,11 @@ uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int
 
 	h_count = sizeof(data_header_t);
 	
-	plc_count = (totals + PLC_FRAMES_PER_GROUP_MAX - 1) / PLC_FRAMES_PER_GROUP_MAX;
+	plc_count = (ucFramesPerGroup + PLC_FRAMES_PER_GROUP_MAX - 1) / PLC_FRAMES_PER_GROUP_MAX;
 	
-	full_size = PLC_HEADER_SIZE*plc_count+(ucCurrentChannels*PLC_L_DATA_SIZE+ucVoltageChannels*PLC_V_DATA_SIZE)*totals;
+	full_size = PLC_HEADER_SIZE*plc_count+(ucCurrentChannels*PLC_L_DATA_SIZE+ucVoltageChannels*PLC_V_DATA_SIZE)*ucFramesPerGroup;
 	
-	o_count = totals*(sizeof(int8_t)+sizeof(float)+sizeof(float));
+	o_count = ucFramesPerGroup*(sizeof(int8_t)+sizeof(float)+sizeof(float));
 	
 	printf("o_count : %d",o_count);
 	
@@ -101,7 +118,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int
 	
 	printf("index : %d all : %d\n", index,h_count+full_size+o_count);
 	
-	remaining = totals;
+	remaining = ucFramesPerGroup;
 	
 	i=0;
 	while(remaining > 0){

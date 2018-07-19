@@ -35,11 +35,11 @@
 struct waveform global_waveform[FRAMES_GROUP_MAX];
 threadpool thpool;
 
-int ImCloudData( uint8_t * data,int len){
+int ImCloudData( uint8_t * data,int len,int try){
 	char buffer[HTTP_RECV_BUF_MAX] = {0x0};
 	char chunkstr[HTTP_CHUNK_HEAD_LEN]= {0x0};
 	int ret = -1;
-	int retry = HTTP_RETRY_MAX;
+	int retry = try;//HTTP_RETRY_MAX;
 	char *mac = global_getMac();
 	char *key = global_getAccesskey();
 	char *url = global_getUrl(ICLOUD_URL_DATA);
@@ -50,6 +50,7 @@ int ImCloudData( uint8_t * data,int len){
 	ret = ImHttpPost(url,chunkstr,data,len,buffer);
 
 	if(ret < 0){
+		printf("CloudDataHandle Error:%s\n",buffer);
 		while(retry > 0){
 			printf("ImHttpPost retry: %d,wait 5 sec.\n",  retry);
 			sleep(5);
@@ -64,7 +65,7 @@ int ImCloudData( uint8_t * data,int len){
 	else{
 		CloudDataHandle(buffer);
 	}
-	printf("ImCloudData end.");
+	printf("ImCloudData end.\n");
 	return ret;
 }
 
@@ -115,13 +116,13 @@ int ImCloudInfo(){
 	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac,key);
     printf("chunkstr: %s\n",  chunkstr);
 
-	ret = ImHttpPost(url,chunkstr,(uint8_t *)postdata,strlen(postdata),buffer);
+	ret = ImHttpPostStr(url,chunkstr,(uint8_t *)postdata,strlen(postdata),buffer);
 
 	if(ret < 0){
 		while(retry > 0){
 			printf("ImHttpPost retry: %d,wait 5 sec.\n",retry);
 			sleep(5);
-			ret = ImHttpPost(url,chunkstr,NULL,0,buffer);
+			ret = ImHttpPostStr(url,chunkstr,NULL,0,buffer);
 			if(ret == 0){
 				ret = CloudInfoHandle(buffer);
 				break;
@@ -346,8 +347,12 @@ void *task(void *arg)
 	int totals = global_getTotals();
 	int icount = global_getIchannelsCount();
 	int vcount = global_getVchannelsCount();
-	char * key = global_getAccesskey();
-	char filename[32]={0x0};
+	char filename[CONFIG_FILENAME_LEN]={0x0};
+	char filepath[CONFIG_FILEPATH_LEN]={0x0};
+	int backup_len = 0;
+	int i=0;
+	//char name[CONFIG_FILENAME_LEN]={0x0};
+	//char file[CONFIG_FILEPATH_LEN]={0x0};
 	
 	get_filename(filename);
 	
@@ -366,7 +371,61 @@ void *task(void *arg)
 	}
 	im_close(fd);
 	
-	postdata = GenerateWaveform(filename,&len,icount,vcount,totals,flag);
+	/*
+	len = 0;
+	im_redis_get_list_head(name);
+	sprintf(file,"%s/%s",DEFAULT_DIRPATH,name);
+	printf("backup file:%s \n",file);
+	postdata = GenerateWaveform(file,&len,icount,vcount,totals,flag);
+	if(postdata!=NULL){
+		printf("post len = %d \n",len);
+		if(ImCloudData(postdata,len,HTTP_RETRY_NONE)==0){
+			//im_delfile(file);
+			//im_redis_pop_head();
+			printf("ImCloud Send Backup OK.\n");
+		}else{
+			printf("ImCloud Send Backup Error.\n");
+		}
+		free(postdata);
+		return NULL;
+	}else{
+		printf("postdata NULL \n");
+		return NULL;
+	}
+	*/		
+	backup_len = im_redis_get_backup_len();
+	
+	
+	if(backup_len>0){
+		for(i=0;i<backup_len;i++){
+			char name[CONFIG_FILENAME_LEN]={0x0};
+			char file[CONFIG_FILEPATH_LEN]={0x0};
+			
+			len = 0;
+			im_redis_get_list_head(name);
+			sprintf(file,"%s/%s.bak",SAVE_DIRPATH,name);
+			printf("backup file:%s \n",file);
+			postdata = GenerateWaveform(file,&len,icount,vcount,totals,flag);
+			if(postdata!=NULL){
+				printf("post len = %d \n",len);
+				if(ImCloudData(postdata,len,HTTP_RETRY_NONE)==0){
+					im_delfile(file);
+					im_redis_pop_head();
+					printf("ImCloud Send Backup OK.\n");
+				}else{
+					printf("ImCloud Send Backup Error.\n");
+				}
+				free(postdata);
+			}else{
+				printf("postdata NULL \n");
+			}
+		}
+	}
+	
+	
+	len = 0;
+	sprintf(filepath,"%s/%s",DEFAULT_DIRPATH,filename);
+	postdata = GenerateWaveform(filepath,&len,icount,vcount,totals,flag);
 	if(postdata!=NULL){
 		printf("post len = %d \n",len);
 	}else{
@@ -374,22 +433,13 @@ void *task(void *arg)
 		return NULL;
 	}
 	
-	if(strlen(key)<0){
-		int ret = ImCloudAccessKey();
-		if(ret < 0)
-		{
-			printf("Error Get Access Key more.");
-			return NULL;
-		}
-	}
-
-	if(ImCloudData(postdata,len)==0){
-		im_delfile(filename);
+	if(ImCloudData(postdata,len,HTTP_RETRY_MAX)==0){
+		im_delfile(filepath);
 	}else{
 		printf("ImCloud Activate Error.\n");
 		im_backfile(filename); 
 	}
-	im_backup_dump();
+	im_redis_backup_dump();
 	free(postdata);
 
 	return NULL;

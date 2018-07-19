@@ -160,13 +160,13 @@ int im_savefile(char* filename,char * buf,int len)
 }
 
 int im_delfile(char *filename){
-	char src_path[MAX_DIRPATH_LEN]={0x0};
+	//char src_path[MAX_DIRPATH_LEN]={0x0};
 	
-	sprintf(src_path,"%s/%s",DEFAULT_DIRPATH,filename);
+	//sprintf(src_path,"%s/%s",DEFAULT_DIRPATH,filename);
 	
-	printf("im_delfile : %s\n",src_path);
+	printf("im_delfile : %s\n",filename);
 	
-	remove(src_path);
+	remove(filename);
 	
 	return 0;
 	
@@ -213,7 +213,7 @@ int im_backfile(char* filename)
 	
 	ret = im_copyfile(src_path,des_path);
 	if(ret == 0 ){
-		im_backup_push(file_back);
+		im_redis_backup_push(file_back);
 		im_delfile(filename);
 	}
 	return ret;

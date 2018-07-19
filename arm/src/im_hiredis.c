@@ -96,28 +96,64 @@ int redis_Cmd(const char *cmd)
     return 0; 
 }
 
-/* push to head*/
-int im_backup_push(char * name)
+/* push to end*/
+int im_redis_backup_push(char * name)
+{
+	char cmd[128]={0x0};
+	int ret=-1;
+	int len = im_redis_get_backup_len();
+	
+	if(len >= IM_BACKUP_WAVE_MAX){
+		/* del first one*/
+		sprintf(cmd,"LPOP %s",IM_BACKUP_KEY_NAME);
+	}
+	sprintf(cmd,"RPUSH %s %s",IM_BACKUP_KEY_NAME,name);
+	ret = redis_Cmd(cmd);
+	
+	return ret;
+}
+
+int im_redis_get_list_head(char *file)
+{
+	char cmd[128]={0x0};
+	redisReply *r = NULL;
+	int ret = -1;
+	
+	sprintf(cmd,"LINDEX %s 0",IM_BACKUP_KEY_NAME);
+    r = (redisReply *)redisCommand(g_ctx, cmd);
+    if (NULL == r) {
+        printf("Error[%d:%s]", g_ctx->err, g_ctx->errstr);
+        return ret;
+    }
+    printf("type: %d\n", r->type); 
+    if(r->type == REDIS_REPLY_STRING){
+        printf("reply->str:%s\n", r->str);
+        strncpy(file,r->str,r->len);
+        ret = 0;
+	}
+    /*release reply and context */
+    freeReplyObject(r);
+    
+	return ret;
+}
+
+int im_redis_pop_head()
 {
 	char cmd[128]={0x0};
 	int ret=-1;
 	
-	int len = im_get_backup_len();
-	if(len >= IM_BACKUP_WAVE_MAX){
-		/* del last one*/
-		sprintf(cmd,"RPOP %s",IM_BACKUP_KEY_NAME);
-	}
-	sprintf(cmd,"LPUSH %s %s",IM_BACKUP_KEY_NAME,name);
+	sprintf(cmd,"LPOP %s",IM_BACKUP_KEY_NAME);
 	ret = redis_Cmd(cmd);
-	return ret;
+	
+	return ret;	
 }
 
-int im_get_backup_len()
+int im_redis_get_backup_len()
 {
 	char cmd[128]={0x0};
 	int len = 0;
-	
 	redisReply *r = NULL;
+	
 	sprintf(cmd,"LLEN %s",IM_BACKUP_KEY_NAME);
     r = (redisReply *)redisCommand(g_ctx, cmd);
     if (NULL == r) {
@@ -134,11 +170,14 @@ int im_get_backup_len()
     return len; 	
 }
 
-int im_backup_dump()
+int im_redis_backup_dump()
 {
 	char cmd[128]={0x0};
-	int len = im_get_backup_len();
+	int len = im_redis_get_backup_len();
 	int ret=-1;
+	
+	if(len == 0 )
+		return ret;	
 	
 	sprintf(cmd,"LRANGE %s 0 %d",IM_BACKUP_KEY_NAME,len);
 	ret = redis_Cmd(cmd);

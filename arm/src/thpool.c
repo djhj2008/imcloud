@@ -20,6 +20,7 @@
 #include <sys/prctl.h>
 #endif
 
+#include "im_log.h"
 #include "thpool.h"
 
 #ifdef THPOOL_DEBUG
@@ -29,7 +30,7 @@
 #endif
 
 #if !defined(DISABLE_PRINT) || defined(THPOOL_DEBUG)
-#define err(str) fprintf(stderr, str)
+#define err(str) imlogE(str)
 #else
 #define err(str)
 #endif
@@ -161,7 +162,7 @@ struct thpool_* thpool_init(int num_threads){
 	for (n=0; n<num_threads; n++){
 		thread_init(thpool_p, &thpool_p->threads[n], n);
 #if THPOOL_DEBUG
-			printf("THPOOL_DEBUG: Created thread %d in pool \n", n);
+			imlogV("THPOOL_DEBUG: Created thread %d in pool \n", n);
 #endif
 	}
 

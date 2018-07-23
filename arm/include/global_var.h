@@ -15,7 +15,7 @@
 #define GLOBAL_TOTALS_DEFAULT 10
 #define GLOBAL_URL_ACCESSKEY "https://iot.xunrun.com.cn/base/index.php/Home/time/accesskey"
 #define GLOBAL_URL_INFO "https://iot.xunrun.com.cn/base/index.php/Home/time/info"
-#define GLOBAL_URL_DATA "https://iot.xunrun.com.cn/base/index.php/Home/time/uploadadc"
+#define GLOBAL_URL_DATA "https://iot.xunrun.com.cn/base/test.php"
 
 /* =================================== API ======================================= */
 void global_setAccessKey(char * key);

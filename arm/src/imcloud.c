@@ -11,12 +11,19 @@ Description: Main Fuction.
 * Backup data for uploading failed and Re-Upload.
 Others: NULL
 Function List:
-1.
+* 1.ImCloudData
+* 2.ImCloudInfo
+* 3.ImCloudAccessKey
+* 4.openInputDev
+* 5.sysInputScan
+* 6.task
+* 7.GetAcessKey
+* 8.getConfig
+* 9.main
 * 
 * @file imcloud.h 
 * 
 *************************************************/
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,7 +77,8 @@ Output:
 * @return 0 	uploading success
 * @return -1 	uploading failed(net or server errors...)
 *************************************************/
-int ImCloudData( uint8_t * data,int len,int try){
+int ImCloudData(uint8_t * data,int len,int try)
+{
 	char buffer[HTTP_RECV_BUF_MAX] = {0x0};
 	char chunkstr[HTTP_CHUNK_HEAD_LEN]= {0x0};
 	int ret = -1;
@@ -124,7 +132,8 @@ Output:
 * @return 0 	get channels success
 * @return -1 	get channels failed(net or server errors...)
 *************************************************/
-int ImCloudInfo(){
+int ImCloudInfo()
+{
 	char buffer[HTTP_RECV_BUF_MAX] = {0x0};
 	char chunkstr[HTTP_CHUNK_HEAD_LEN]= {0x0};
 	char postdata[HTTP_NORMAL_POST_BUF_MAX] = {0x0};
@@ -185,7 +194,8 @@ Output:
 * @return 0 	get access_key success
 * @return -1 	get access_key failed(net or server errors...)
 *************************************************/
-int ImCloudAccessKey(){
+int ImCloudAccessKey()
+{
 	char buffer[HTTP_RECV_BUF_MAX] = {0x0};
 	unsigned char Signature[HTTP_SIGNATURE_LEN]= {0x0};
 	char chunkstr[HTTP_CHUNK_HEAD_LEN]= {0x0};
@@ -219,6 +229,22 @@ int ImCloudAccessKey(){
 	return ret;
 }
 
+
+/*************************************************
+Function: openInputDev
+Description: open dev adc7606
+Calls: 
+* NULL
+Called By:
+* main
+Table Accessed: NULL
+Table Updated: NULL
+Input:
+* @param NULL
+Output: 
+* @return 0 	open dev success
+* @return -1 	device error
+*************************************************/
 int openInputDev(const char* inputName)
 {
     int fd = -1;
@@ -467,7 +493,7 @@ void *task(void *arg)
 			imlogE("backup file:%s \n",file);
 			postdata = GenerateWaveform(file,&len,icount,vcount,totals,flag);
 			if(postdata!=NULL){
-				printf("post len = %d \n",len);
+				imlogV("post len = %d \n",len);
 				if(ImCloudData(postdata,len,HTTP_RETRY_NONE)==0){
 					im_delfile(file);
 					im_redis_pop_head();
@@ -545,7 +571,8 @@ Input:
 Output: 
 * @return @ImCloudAccessKey
 *************************************************/
-int GetCHInfo(){
+int GetCHInfo()
+{
 	int ret = -1;
 	imlogV("GetInfo().\n");
 	ret = ImCloudInfo();

@@ -34,21 +34,16 @@ enum ICOULD_URL {
 	ICLOUD_URL_DATA,
 	ICLOUD_URL_MAX,
 };
-/* =================================== API ======================================= */
-void setGlobalTotals(int totals);
-void setAccessKey();
-int GetAcessKey();
-int GetCHInfo();
-void *task(void *arg);
-int ImCloudData( uint8_t * data,int len,int try);
-int ImCloudAccessKey();
 
-void setIchFlag(int ch);
-void setVchFlag(int ch);
-int getIchannelsCount();
-int getVchannelsCount();
-void resetICHFlag();
-void resetVCHFlag();
+/* =================================== API ======================================= */
+int ImCloudData(uint8_t * data,int len,int try);
+int ImCloudInfo();
+int ImCloudAccessKey();
+int openInputDev(const char* inputName);
+int sysInputScan(void);
+void *task(void *arg);
+int GetAcessKey();
+int getConfig();
 #endif
 
 

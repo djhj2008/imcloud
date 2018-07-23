@@ -23,6 +23,7 @@
 #include "plchead.h"
 #include "plehead.h"
 
+#include "im_log.h"
 #include "config.h"
 #include "im_dataform.h"
 #include "global_var.h"
@@ -45,7 +46,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int
 	uint16_t ucFramesPerGroup  = totals;  //300
 	int file_totals=0;
 	
-	printf("ucFramesPerGroup  : %d\n", ucFramesPerGroup);
+	imlogV("ucFramesPerGroup  : %d\n", ucFramesPerGroup);
 
 	file_size = get_file_size(file);
 	
@@ -53,34 +54,34 @@ uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int
 		if(file_size%sizeof(struct waveform)==0){
 			file_totals = file_size/sizeof(struct waveform);
 		}else{
-			printf("file format error.filesize=%d,block=%d.\n",file_size,sizeof(struct waveform));
+			imlogE("file format error.filesize=%d,block=%d.\n",file_size,sizeof(struct waveform));
 			return NULL;
 		}
 	
 	}else{
-		printf("file size error.\n");
+		imlogE("file size error.\n");
 		return NULL;	
 	}
 
 	if(file_totals!=totals){
 		ucFramesPerGroup = file_totals;
-		printf("ChangeTotals File totals = %d curTotals=%d.\n",file_totals,totals);
+		imlogE("ChangeTotals File totals = %d curTotals=%d.\n",file_totals,totals);
 	}
 	
 	fd = open(file,O_RDWR);
 	if(fd<0){
-		printf("file open error.\n");
+		imlogE("file open error.\n");
 		return NULL;
 	}
 
 	w_count = read(fd,waveform_t,sizeof(struct waveform)*ucFramesPerGroup);
 	
 	if(w_count<0){
-		printf("file read error.\n");
+		imlogE("file read error.\n");
 		return NULL;
 	}
 	close(fd);
-	//printf("waveform_t time_stamp=%ld\n",waveform_t->time_stamp);
+	//imlogV("waveform_t time_stamp=%ld\n",waveform_t->time_stamp);
 
 	data_header_t.version 	= DATA_FORMAT_VERSION;
 	data_header_t.total 	= ucFramesPerGroup;
@@ -89,14 +90,14 @@ uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int
 	data_header_t.vgain		= 0;
 	data_header_t.start_time= (uint32_t)waveform_t[0].time_stamp;
 	
-	printf("version  : %d\n", data_header_t.version);
-	printf("total : %d\n", data_header_t.total);
-	printf("flag : %d\n", data_header_t.flag );
-	printf("start_time : %d\n", data_header_t.start_time);
+	imlogV("version  : %d\n", data_header_t.version);
+	imlogV("total : %d\n", data_header_t.total);
+	imlogV("flag : %d\n", data_header_t.flag );
+	imlogV("start_time : %d\n", data_header_t.start_time);
 	
 	for(i=0;i<ucFramesPerGroup;i++){
-		//printf("index = %d rssi = %d w1 = %f w2 = %f \n", i,waveform_t[i].rssi,waveform_t[i].w1,waveform_t[i].w2);
-		//printf(" data v=%d l1=%d l2=%d\n",waveform_t[i].data[0],waveform_t[i].data[64],waveform_t[i].data[128]);
+		//imlogV("index = %d rssi = %d w1 = %f w2 = %f \n", i,waveform_t[i].rssi,waveform_t[i].w1,waveform_t[i].w2);
+		//imlogV(" data v=%d l1=%d l2=%d\n",waveform_t[i].data[0],waveform_t[i].data[64],waveform_t[i].data[128]);
 		
 	}
 
@@ -108,7 +109,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int
 	
 	o_count = ucFramesPerGroup*(sizeof(int8_t)+sizeof(float)+sizeof(float));
 	
-	printf("o_count : %d",o_count);
+	imlogV("o_count : %d",o_count);
 	
 	postdata = (uint8_t *)malloc(h_count+full_size+o_count);
 	
@@ -116,7 +117,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int
 	
 	index += h_count;
 	
-	printf("index : %d all : %d\n", index,h_count+full_size+o_count);
+	imlogV("index : %d all : %d\n", index,h_count+full_size+o_count);
 	
 	remaining = ucFramesPerGroup;
 	
@@ -137,13 +138,13 @@ uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int
 				free(wp);
 			}
 			
-			printf("index  : %d remaining = %d\n", index , remaining);
+			imlogV("index  : %d remaining = %d\n", index , remaining);
 			
 			for(j=0;j<PLC_FRAMES_PER_GROUP_MAX;j++){
 				memcpy(postdata+index,&(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].rssi),sizeof(int8_t));
 				index += sizeof(int8_t);
 			}
-			printf("times : %d index  rssi end: %d\n", i,index);
+			imlogV("times : %d index  rssi end: %d\n", i,index);
 			
 			for(j=0;j<PLC_FRAMES_PER_GROUP_MAX;j=j+2){
 				memcpy(postdata+index,&(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w1),sizeof(float));
@@ -152,7 +153,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int
 				index += sizeof(float);	
 			}
 
-			printf("index wat end: %d\n", index);
+			imlogV("index wat end: %d\n", index);
 						
 		}else{
 			ple_uint8_t	*wp= ple_decode(waveform_t,i*PLC_FRAMES_PER_GROUP_MAX,ucCurrentChannels,ucVoltageChannels,remaining,&result_size);
@@ -167,13 +168,13 @@ uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int
 				free(wp);
 			}
 			
-			printf("index  : %d\n", index);
+			imlogV("index  : %d\n", index);
 			
 			for(j=0;j<remaining;j++){
 				memcpy(postdata+index,&(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].rssi),sizeof(int8_t));
 				index += sizeof(int8_t);
 			}
-			printf("times : %d index  rssi end: %d\n", i,index);
+			imlogV("times : %d index  rssi end: %d\n", i,index);
 			
 			for(j=0;j<remaining;j=j+2){
 				memcpy(postdata+index,&(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w1),sizeof(float));
@@ -182,7 +183,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int
 				index += sizeof(float);	
 			}
 
-			printf("index wat end: %d\n", index);
+			imlogV("index wat end: %d\n", index);
 			
 			break;
 		}
@@ -193,7 +194,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int
 	
 	*len = index;
 
-	printf("free  : waveform_t\n");
+	imlogV("free  : waveform_t\n");
 
 	/* Ending */
 	return postdata;
@@ -222,17 +223,17 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 	int		i, j, k, l, result_size;
 	ple_code_t	ier_e;
 
-	printf("ucFundamentalFrq  : %d\n", ucFundamentalFrq);
-	printf("ucCurrentChannels : %d\n", ucCurrentChannels);
-	printf("ucVoltageChannels : %d\n", ucVoltageChannels);
-	printf("ucSamplesPerFrame : %d\n", ucSamplesPerFrame);
-	printf("ucFramesPerGroup  : %d\n", ucFramesPerGroup);
-	printf("\n");
-	printf("==================================================\n");
-	printf("                PLE check\n");
-	printf("==================================================\n");
+	imlogV("ucFundamentalFrq  : %d\n", ucFundamentalFrq);
+	imlogV("ucCurrentChannels : %d\n", ucCurrentChannels);
+	imlogV("ucVoltageChannels : %d\n", ucVoltageChannels);
+	imlogV("ucSamplesPerFrame : %d\n", ucSamplesPerFrame);
+	imlogV("ucFramesPerGroup  : %d\n", ucFramesPerGroup);
+	imlogV("\n");
+	imlogV("==================================================\n");
+	imlogV("                PLE check\n");
+	imlogV("==================================================\n");
 
-	printf("ple_decode sub_index=%d ucFramesPerGroup=%d \n",sub_index,ucFramesPerGroup);
+	imlogV("ple_decode sub_index=%d ucFramesPerGroup=%d \n",sub_index,ucFramesPerGroup);
 	
 	/* Initialize */
 	PLEInitialize(&hPle, NULL, 0);
@@ -242,7 +243,7 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 	nChannels = ucCurrentChannels + ucVoltageChannels;
 	ppusWave = (ple_uint16_t **)malloc((size_t)nChannels*sizeof(ple_uint16_t *));
 	if(ppusWave == NULL) {
-		fprintf(stderr, " ### Error: Memory Allocation ###\n");
+		imlogE("### Error: Memory Allocation ###\n");
 		goto Finish;
 	}
 	memset(ppusWave, 0, (size_t)nChannels*sizeof(ple_uint16_t *));
@@ -252,7 +253,7 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 	for(i=0; i<nChannels; i++) {
 		ppusWave[i] = (ple_uint16_t *)malloc(PLC_SAMPLES_PER_FRAME_MAX*sizeof(ple_uint16_t));
 		if(ppusWave[i] == NULL) {
-			fprintf(stderr, " ### Error: Memory Allocation ###\n");
+			imlogE("### Error: Memory Allocation ###\n");
 			goto Finish;
 		}
 	}
@@ -269,11 +270,11 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 			(ple_uint8_t)ucSamplesPerFrame,
 			(ple_uint8_t)ucFramesPerGroup);
 	if(ier_e < 0) {
-		fprintf(stderr, " ### Error: PLEPreProcess: %d ###\n", ier_e);
+		imlogE("### Error: PLEPreProcess: %d ###\n", ier_e);
 		goto Finish;
 	}
 
-	printf("Start Decode.\n");
+	imlogV("Start Decode.\n");
 
 	global_dumpCH();
 	/* Loop */
@@ -287,7 +288,7 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 		float w2 = 0;
 		l = 0;
 		/* preparing wave data (1 sec) */
-		//printf("index=%d v=%d l1=%d l2=%d\n",j,waveform_t[j+sub_index].data[0],waveform_t[j+sub_index].data[64],waveform_t[j+sub_index].data[128]);
+		//imlogV("index=%d v=%d l1=%d l2=%d\n",j,waveform_t[j+sub_index].data[0],waveform_t[j+sub_index].data[64],waveform_t[j+sub_index].data[128]);
 		for(k=0;k<WAVE_CHANNEL_MAX;k++){
 			int iflag = global_getChFlag(k);
 			if(iflag == ADC_CH_OPEN){
@@ -297,7 +298,7 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 				l++;
 			}
 			if(l>nChannels){
-				printf("Channels Out :%d\n",nChannels);
+				imlogV("Channels Out :%d\n",nChannels);
 				break;
 			}
 		}
@@ -313,13 +314,13 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 		w2 = w2_sum/ucSamplesPerFrame;
 		
 		if(w1 != waveform_t[j+sub_index].w1||w2 != waveform_t[j+sub_index].w2){
-			printf("w1 = %f pw1 = %f ,w2 = %f pw2 = %f\n",w1,waveform_t[j+sub_index].w1,w2,waveform_t[j+sub_index].w2);
+			imlogV("w1 = %f pw1 = %f ,w2 = %f pw2 = %f\n",w1,waveform_t[j+sub_index].w1,w2,waveform_t[j+sub_index].w2);
 		}
 
 		/* Put data to PLE */
 		ier_e = PLEPutData(hPle, (const ple_uint16_t **)ppusWave);
 		if(ier_e < 0) {
-			fprintf(stderr, " ### Error: PLEPutData: %d ###\n", ier_e);
+			imlogE("### Error: PLEPutData: %d ###\n", ier_e);
 			goto Finish;
 		}
 
@@ -332,14 +333,14 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 				break;
 			}
 			else if(ier_e < 0) {
-				fprintf(stderr, " ### Error: PLEGetResultSize: %d ###\n", ier_e);
+				imlogE("### Error: PLEGetResultSize: %d ###\n", ier_e);
 				goto Finish;
 			}
 
 			/* Alloc */
 			pucItem = (plc_uint8_t *)realloc((void *)pucItem, nItemSize);
 			if(pucItem == NULL) {
-				fprintf(stderr, " ### Error: Memory Allocation ###\n");
+				imlogE("### Error: Memory Allocation ###\n");
 				goto Finish;
 			}
 			else {
@@ -352,7 +353,7 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 				break;
 			}
 			else if(ier_e < 0) {
-				fprintf(stderr, " ### Error: PLEGetResult: %d ###\n", ier_e);
+				imlogE(" ### Error: PLEGetResult: %d ###\n", ier_e);
 				goto Finish;
 			}
       
@@ -366,17 +367,17 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 	/* CHECK RESULT */
 	wp = encoded_result;
 	*size = result_size;
-	printf("==================  ENCODE OK ====================\n");
+	imlogV("==================  ENCODE OK ====================\n");
 
 Finish:
-	printf("Finish \n");
+	imlogV("Finish \n");
 	/* Release */
 	PLEFinalize(&hPle);
-	printf("PLEFinalize \n");
+	imlogV("PLEFinalize \n");
 	if(pucItem != NULL) {
 		free(pucItem);
 	}
-	printf("free  : pucItem\n");
+	imlogV("free  : pucItem\n");
 	if(ppusWave != NULL) {
 		for(i=0; i<nChannels; i++) {
 			if(ppusWave[i] != NULL) {
@@ -385,7 +386,7 @@ Finish:
 		}
 		free(ppusWave);
 	}
-	printf("free  : ppusWave\n");
+	imlogV("free  : ppusWave\n");
 	//if(encoded_result != NULL) {
 	//	free(encoded_result);
 	//}

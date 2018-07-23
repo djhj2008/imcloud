@@ -20,6 +20,7 @@
 #include <time.h>
 #include <sys/time.h>
 
+#include "im_log.h"
 #include "im_file.h"
 #include "im_hiredis.h"
 
@@ -52,10 +53,10 @@ int im_openfile(char* filename)
         if(errno == ENOENT)//是否已经存在该文件夹
         {
             ret = mkdir(dirpath, 0775);//创建文件夹
-            printf("creat dir %s \n", dirpath);
+            imlogE("creat dir %s \n", dirpath);
             if(ret < 0)
             {
-                printf("Could not create directory %s \n",
+                imlogE("Could not create directory %s \n",
 					dirpath);
 				return EXIT_FAILURE;
             }
@@ -63,7 +64,7 @@ int im_openfile(char* filename)
         }
         else
         {
-            printf("bad file path\n");
+            imlogE("bad file path\n");
             return EXIT_FAILURE;
         }
     }
@@ -81,7 +82,7 @@ int im_savebuff(int fd,char * buf,int len)
 	int count = 0;
 	while(sub_len>0){
 		count = write(fd,buf,sub_len);
-		printf("savebuff count:%d\n",count);
+		imlogV("savebuff count:%d\n",count);
 		sub_len =sub_len - count;
 	}
 	return sub_len;
@@ -106,7 +107,7 @@ void get_filename(char * filename)
 	time(&tt);
 	t = localtime(&tt);
 	sprintf(filename,"%4d%02d%02d_%02d%02d%02d_%03d", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec,random);
-	printf("get_filename:%s\n",filename);
+	imlogV("get_filename:%s\n",filename);
 	
 }
 
@@ -128,10 +129,10 @@ int im_savefile(char* filename,char * buf,int len)
         if(errno == ENOENT)//是否已经存在该文件夹
         {
             ret = mkdir(dirpath, 0775);//创建文件夹
-            printf("creat dir %s \n", dirpath);
+            imlogE("creat dir %s \n", dirpath);
             if(ret < 0)
             {
-                printf("Could not create directory %s \n",
+                imlogE("Could not create directory %s \n",
 					dirpath);
 				return EXIT_FAILURE;
             }
@@ -139,7 +140,7 @@ int im_savefile(char* filename,char * buf,int len)
         }
         else
         {
-            printf("bad file path\n");
+            imlogE("bad file path\n");
             return EXIT_FAILURE;
         }
     }
@@ -150,7 +151,7 @@ int im_savefile(char* filename,char * buf,int len)
 		int count = 0;
 		while(sub_len>0){
 			count = write(fd,buf,sub_len);
-			printf("write file:%s ,count:%d\n",src_path,count);
+			imlogV("write file:%s ,count:%d\n",src_path,count);
 			sub_len =sub_len - count;
 		}
 	}
@@ -164,7 +165,7 @@ int im_delfile(char *filename){
 	
 	//sprintf(src_path,"%s/%s",DEFAULT_DIRPATH,filename);
 	
-	printf("im_delfile : %s\n",filename);
+	imlogV("im_delfile : %s\n",filename);
 	
 	remove(filename);
 	
@@ -190,10 +191,10 @@ int im_backfile(char* filename)
         if(errno == ENOENT)//是否已经存在该文件夹
         {
             ret = mkdir(dirpath, 0775);//创建文件夹
-            printf("creat dir :%s \n", dirpath);
+            imlogE("creat dir :%s \n", dirpath);
             if(ret < 0)
             {
-                printf("Could not create directory %s \n",
+                imlogE("Could not create directory %s \n",
 					dirpath);
 				return EXIT_FAILURE;
             }
@@ -201,7 +202,7 @@ int im_backfile(char* filename)
         }
         else
         {
-            printf("bad file path\n");
+            imlogE("bad file path\n");
             return EXIT_FAILURE;
         }
     }
@@ -230,39 +231,39 @@ int im_scanDir()
 	int ret;
 	char buf[MAX_DIRPATH_LEN];
 	
-	printf("chdir %s\n",getcwd(dirback,MAX_DIRPATH_LEN));
+	imlogV("chdir %s\n",getcwd(dirback,MAX_DIRPATH_LEN));
 	
     strcpy(dirpath, SAVE_DIRPATH);
     
 	if ((dp = opendir(dirpath)) == NULL)  
 	{  
-		fprintf(stderr, "cannot open directory: %s\n", dirpath);  
+		imlogE("cannot open directory: %s\n", dirpath);  
 		return -1;  
 	}
 
 	ret = chdir (dirpath);
 	if(ret == -1){
-		printf("chdir Save Error.\n");
+		imlogE("chdir Save Error.\n");
 		return -1;
 	}
-	printf("chdir %s\n",getcwd(buf,MAX_DIRPATH_LEN));
+	imlogV("chdir %s\n",getcwd(buf,MAX_DIRPATH_LEN));
 	while ((entry = readdir(dp)) != NULL)  
 	{  
 		lstat(entry->d_name, &statbuf);  
 		if (S_ISREG(statbuf.st_mode))  
 		{  
 			//remove(entry->d_name); 
-			printf("ScanDir:%s\n",entry->d_name);
+			imlogV("ScanDir:%s\n",entry->d_name);
 		}  
 	}  
 	
 	ret = chdir (dirback);
 	if(ret == -1){
-		printf("chdir Home Error.\n");
+		imlogE("chdir Home Error.\n");
 		return -1;
 	}
 
-	printf("chdir %s\n",getcwd(buf,MAX_DIRPATH_LEN));
+	imlogV("chdir %s\n",getcwd(buf,MAX_DIRPATH_LEN));
 	return 0;  
 }  
     
@@ -278,7 +279,7 @@ int im_copyfile(char const *src_path, char const *des_path)
 	
 	if(fd < 0|| fd2 < 0)
 	{
-		printf("im_copyfile open Error.\n");
+		imlogE("im_copyfile open Error.\n");
 		return -1;
 	}
 	
@@ -286,7 +287,7 @@ int im_copyfile(char const *src_path, char const *des_path)
 	{
 		w_len = write(fd2,buff,len);
 		if(w_len!=len){
-			printf("im_copyfile Error:%d.\n",w_len);
+			imlogE("im_copyfile Error:%d.\n",w_len);
 			return -1;
 		}
 	}

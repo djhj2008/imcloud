@@ -17,6 +17,7 @@
 #include <assert.h>  
 #include <hiredis/hiredis.h> //redis C接口库
 
+#include "im_log.h"
 #include "im_hiredis.h"
 
 redisContext *g_ctx = NULL;
@@ -27,10 +28,10 @@ int redis_init()
     c = redisConnect(REDIS_HOST, REDIS_PORT);
     if (NULL == c || c->err) {
         if(c) {
-            printf("Redis [%s:%d], Error:[%s]\n", REDIS_HOST, REDIS_PORT, c->errstr);
+            imlogV("Redis [%s:%d], Error:[%s]\n", REDIS_HOST, REDIS_PORT, c->errstr);
             redisFree(c);
         } else {
-            printf("Redis [%s:%d] failure\n", REDIS_HOST, REDIS_PORT);
+            imlogV("Redis [%s:%d] failure\n", REDIS_HOST, REDIS_PORT);
         }
         return -1;
     }
@@ -55,39 +56,39 @@ int redis_Cmd(const char *cmd)
         return -1;
     }
 
-    printf("%s\n", cmd);
+    imlogV("%s\n", cmd);
 
     r = (redisReply *)redisCommand(g_ctx, cmd);
     if (NULL == r) {
-        printf("Error[%d:%s]", g_ctx->err, g_ctx->errstr);
+        imlogE("Error[%d:%s]", g_ctx->err, g_ctx->errstr);
         return -1;
     }
 
-    printf("type: %d\n", r->type); 
+    imlogV("type: %d\n", r->type); 
     switch(r->type) {
     case REDIS_REPLY_STATUS:
-        printf("type:%s, reply->len:%d reply->str:%s\n", "REDIS_REPLY_STATUS", r->len, r->str);
+        imlogV("type:%s, reply->len:%d reply->str:%s\n", "REDIS_REPLY_STATUS", r->len, r->str);
         break;
     case REDIS_REPLY_ERROR:
-        printf("type:%s, reply->len:%d reply->str:%s\n", "REDIS_REPLY_ERROR", r->len, r->str);
+        imlogV("type:%s, reply->len:%d reply->str:%s\n", "REDIS_REPLY_ERROR", r->len, r->str);
         break;
     case REDIS_REPLY_INTEGER:
-        printf("type:%s, reply->integer:%lld\n", "REDIS_REPLY_INTEGER", r->integer);
+        imlogV("type:%s, reply->integer:%lld\n", "REDIS_REPLY_INTEGER", r->integer);
         break;
     case REDIS_REPLY_NIL:
-        printf("type:%s, no data\n", "REDIS_REPLY_NIL");
+        imlogV("type:%s, no data\n", "REDIS_REPLY_NIL");
         break;
     case REDIS_REPLY_STRING:
-        printf("type:%s, reply->len:%d reply->str:%s\n", "REDIS_REPLY_STRING", r->len, r->str);
+        imlogV("type:%s, reply->len:%d reply->str:%s\n", "REDIS_REPLY_STRING", r->len, r->str);
         break;
     case REDIS_REPLY_ARRAY:
-        printf("type:%s, reply->elements:%d\n", "REDIS_REPLY_ARRAY", r->elements);
+        imlogV("type:%s, reply->elements:%d\n", "REDIS_REPLY_ARRAY", r->elements);
         for (i = 0; i < r->elements; i++) {
             printf("%d: %s\n", i, r->element[i]->str);
         }
         break;
     default:
-        printf("unkonwn type:%d\n", r->type);
+        imlogE("unkonwn type:%d\n", r->type);
         break;
     }
  
@@ -125,7 +126,7 @@ int im_redis_get_list_head(char *file)
         printf("Error[%d:%s]", g_ctx->err, g_ctx->errstr);
         return ret;
     }
-    printf("type: %d\n", r->type); 
+    imlogV("type: %d\n", r->type); 
     if(r->type == REDIS_REPLY_STRING){
         printf("reply->str:%s\n", r->str);
         strncpy(file,r->str,r->len);
@@ -157,12 +158,12 @@ int im_redis_get_backup_len()
 	sprintf(cmd,"LLEN %s",IM_BACKUP_KEY_NAME);
     r = (redisReply *)redisCommand(g_ctx, cmd);
     if (NULL == r) {
-        printf("Error[%d:%s]", g_ctx->err, g_ctx->errstr);
+        imlogE("Error[%d:%s]", g_ctx->err, g_ctx->errstr);
         return -1;
     }
-    printf("type: %d\n", r->type); 
+    imlogV("type: %d\n", r->type); 
     if(r->type == REDIS_REPLY_INTEGER){
-        printf("reply->integer:%lld\n", r->integer);
+        imlogE("reply->integer:%lld\n", r->integer);
         len = r->integer;
 	}
     /*release reply and context */

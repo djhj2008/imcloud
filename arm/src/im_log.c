@@ -1,4 +1,19 @@
-
+/*************************************************
+Copyright (C), 2018-2019, Tech. Co., Ltd.
+File name: im_log.c
+Author:doujun
+Version:1.0
+Date:2018-07-19
+Description: Main Fuction.
+* print debug log times
+Others: NULL
+Function List:
+* 1.imlogV
+* 2.imlogE
+* 
+* @file im_log.h 
+* 
+*************************************************/
 #include <string.h>  
 #include <unistd.h>
 #include <signal.h>
@@ -9,6 +24,8 @@
 #include <time.h>
 #include <stdarg.h>
 
+#include "im_log.h"
+
 void imlogV(char *format, ...)
 {
     int iLen = 0;
@@ -18,12 +35,16 @@ void imlogV(char *format, ...)
     time_t timep;
     struct tm *tmp = NULL;
  
+	if(LOG_LEVEL==0){
+		return;
+	}
+ 
     timep = time(NULL);
     tmp = localtime(&timep); //获取当地时间
     
+    printf("[%04d-%02d-%02d ", tmp->tm_year-100+2000,tmp->tm_mon+1,tmp->tm_mday); //输出日期
+    printf("%02d:%02d:%02d]", tmp->tm_hour,tmp->tm_min,tmp->tm_sec);  //输出时间
     printf("Debug ");
-    printf("[%d-%d-%d ", tmp->tm_year-100+2000,tmp->tm_mon+1,tmp->tm_mday); //输出日期
-    printf("%d:%d:%d]", tmp->tm_hour,tmp->tm_min,tmp->tm_sec);  //输出时间
  
     pcParameter = format;
     
@@ -61,10 +82,10 @@ void imlogE(char *format, ...)
     timep = time(NULL);
     tmp = localtime(&timep); //获取当地时间
     
-    printf("Error ");
     printf("[%d-%d-%d ", tmp->tm_year-100+2000,tmp->tm_mon+1,tmp->tm_mday); //输出日期
     printf("%d:%d:%d]", tmp->tm_hour,tmp->tm_min,tmp->tm_sec);  //输出时间
- 
+    printf("Error ");
+    
     pcParameter = format;
     
     iLen = strlen(format);

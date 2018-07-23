@@ -32,8 +32,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-
-
+#include "im_log.h"
 #include "wifi_status.h"
 
 char  card_name[IFNAMSIZ + 1];
@@ -106,7 +105,7 @@ int get_wifi_info()
 	/* Get stats */
 	rc = iw_get_stats(card_name, &stats);
 	if(rc){
-		syslog(LOG_ERR|LOG_DAEMON,"Wifi signal reading error : %d\n",rc);
+		imlogE("Wifi signal reading error : %d\n",rc);
 		dblevel = 0;
 	} else {
 		dblevel = stats.qual.level;
@@ -223,7 +222,7 @@ int getLocalMac(char * mac_addr)
     sock_mac = socket(AF_INET, SOCK_STREAM, 0);  
     if (sock_mac == -1)  
     {  
-        perror("create socket falise...mac\n");  
+        imlogE("create socket falise...mac\n");  
         return -1;  
     }  
   
@@ -232,7 +231,7 @@ int getLocalMac(char * mac_addr)
   
     if ((ioctl(sock_mac, SIOCGIFHWADDR, &ifr_mac)) < 0)  
     {  
-        printf("mac ioctl error\n");  
+        imlogE("mac ioctl error\n");  
         close(sock_mac);  
         return -1;  
     }

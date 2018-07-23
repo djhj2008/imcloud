@@ -15,13 +15,14 @@
 
 #include <curl/curl.h>  
 
+#include "im_log.h"
 #include "http_tool.h"
 
 size_t read_callback(void *ptr, size_t size, size_t nmemb, void *userp)  
 {  
 	struct WriteThis *pooh = (struct WriteThis *)userp;  
 	
-	printf("bytes_remaining %d size %d \n",pooh->bytes_remaining,size*nmemb);
+	imlogV("bytes_remaining %d size %d \n",pooh->bytes_remaining,size*nmemb);
 	
 	if(size*nmemb < 1)  
 		return 0;  
@@ -52,7 +53,7 @@ size_t copy_data(void *ptr, size_t size, size_t nmemb, void *userp)
 
 	res_size = size * nmemb;
 	
-	printf("recv:%d,left:%ld\n",res_size,rooh->sizeleft);
+	imlogV("recv:%d,left:%ld\n",res_size,rooh->sizeleft);
 	//printf("recv:%s\n",(char *)ptr);
 	if(rooh->sizeleft+res_size < HTTP_RECV_BUF_MAX)
 	{
@@ -71,7 +72,7 @@ int ImHttpPostStr(char *url,char* header,uint8_t * post_data,int data_len,char *
 	int ret = -1;
 	struct curl_slist *chunk = NULL; 
 	
-	printf("ImHttpPost enter %s.\n",url);
+	imlogV("ImHttpPost enter %s.\n",url);
 	
 	rooh.readptr = rev_data;
 	rooh.sizeleft = 0;
@@ -80,7 +81,7 @@ int ImHttpPostStr(char *url,char* header,uint8_t * post_data,int data_len,char *
 	res = curl_global_init(CURL_GLOBAL_DEFAULT);  
 	/* Check for errors */   
 	if(res != CURLE_OK) {  
-		printf("curl_global_init() failed: %s\n", curl_easy_strerror(res));  
+		imlogE("curl_global_init() failed: %s\n", curl_easy_strerror(res));  
 	 	return ret;  
 	}  
  
@@ -96,7 +97,7 @@ int ImHttpPostStr(char *url,char* header,uint8_t * post_data,int data_len,char *
 			pooh.bytes_remaining = data_len;
 			pooh.bytes_written = 0;
 			
-			printf("ImHttpPost data_len = %d .\n",data_len);
+			//imlogV("ImHttpPost data_len = %d .\n",data_len);
 			
 			/* Now specify we want to POST data */   
 			curl_easy_setopt(curl, CURLOPT_POST, 1L);  
@@ -156,14 +157,14 @@ int ImHttpPostStr(char *url,char* header,uint8_t * post_data,int data_len,char *
 		
 		/* Check for errors */   
 		if(res != CURLE_OK)  
-		  printf("curl_easy_perform() failed: %s\n",  
+		  imlogE("curl_easy_perform() failed: %s\n",  
 			  curl_easy_strerror(res));  
 
 		res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE , &retcode);
 		if(retcode == 200&&res == CURLE_OK){
 			ret = 0;
 		}else{
-			printf("Error %ld\n",retcode);
+			imlogE("Error %ld\n",retcode);
 		}
 		/* always cleanup */   
 		curl_easy_cleanup(curl);  
@@ -181,7 +182,7 @@ int ImHttpPost(char *url,char* header,uint8_t * post_data,int data_len,char *rev
 	int ret = -1;
 	struct curl_slist *chunk = NULL; 
 	
-	printf("ImHttpPost enter %s.\n",url);
+	imlogV("ImHttpPost enter %s.\n",url);
 	
 	rooh.readptr = rev_data;
 	rooh.sizeleft = 0;
@@ -190,7 +191,7 @@ int ImHttpPost(char *url,char* header,uint8_t * post_data,int data_len,char *rev
 	res = curl_global_init(CURL_GLOBAL_DEFAULT);  
 	/* Check for errors */   
 	if(res != CURLE_OK) {  
-		printf("curl_global_init() failed: %s\n", curl_easy_strerror(res));  
+		imlogE("curl_global_init() failed: %s\n", curl_easy_strerror(res));  
 	 	return ret;  
 	}  
  
@@ -206,7 +207,7 @@ int ImHttpPost(char *url,char* header,uint8_t * post_data,int data_len,char *rev
 			pooh.bytes_remaining = data_len;
 			pooh.bytes_written = 0;
 			
-			printf("ImHttpPost data_len = %d .\n",data_len);
+			//printf("ImHttpPost data_len = %d .\n",data_len);
 			
 			/* Now specify we want to POST data */   
 			curl_easy_setopt(curl, CURLOPT_POST, 1L);  
@@ -267,14 +268,14 @@ int ImHttpPost(char *url,char* header,uint8_t * post_data,int data_len,char *rev
 		
 		/* Check for errors */   
 		if(res != CURLE_OK)  
-		  printf("curl_easy_perform() failed: %s\n",  
+		  imlogE("curl_easy_perform() failed: %s\n",  
 			  curl_easy_strerror(res));  
 
 		res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE , &retcode);
 		if(retcode == 200&&res == CURLE_OK){
 			ret = 0;
 		}else{
-			printf("Error %ld\n",retcode);
+			imlogE("Error %ld\n",retcode);
 		}
 		/* always cleanup */   
 		curl_easy_cleanup(curl);  

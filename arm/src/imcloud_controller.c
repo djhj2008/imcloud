@@ -1,12 +1,23 @@
-/* ********************************
- * Author:       DJ
- * License:	     NULL
- * Description:  Cloud Data Handle.
- *               For usage, check the imcloud.h file
- *
- *//** @file imcloud_controller.h *//*
- *
- ********************************/
+/*************************************************
+Copyright (C), 2018-2019, Tech. Co., Ltd.
+File name: imcloud.c
+Author:doujun
+Version:1.0
+Date:2018-07-19
+Description: Controller for Server response.
+* process the data returned from the server
+Others: NULL
+Function List:
+* CloudAccessKeyHandle
+* parseICHStr
+* GenerateInfoData
+* CloudInfoHandle
+* CloudDataHandle
+* CloudGetCMD
+* 
+* @file imcloud_controller.h 
+* 
+*************************************************/
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +31,7 @@
 #include "imcloud_controller.h"
 #include "global_var.h"
 
+/*Data interface calback command*/
 char *imcloud_cmd_t[IMCLOUD_CMD_MAX]={
 	IMCOULD_DATA_NONE_CMD,
 	IMCOULD_DATA_FW_UPDATE_CMD,
@@ -27,9 +39,25 @@ char *imcloud_cmd_t[IMCLOUD_CMD_MAX]={
 	IMCOULD_DATA_INTERVAL_CMD,
 	IMCOULD_DATA_LOGLEVEL_CMD,
 	IMCOULD_DATA_WAVEUPLOAD_CMD,
-	IMCOULD_DATA_SSID_CMD
+		
 };
 
+/*************************************************
+Function: CloudAccessKeyHandle
+Description: Parsing the data from server response
+Calls: 
+* global_setAccesskey 
+Called By:
+* ImCloudAccessKey
+Table Accessed: NULL
+Table Updated: NULL
+Input:
+* @param buf	server response json data
+
+Output: 
+* @return 0 	parse success
+* @return -1 	data format error(net or server errors...)
+*************************************************/
 int CloudAccessKeyHandle(char * buf){
 	struct json_object *infor_object = NULL;
 	struct json_object *status_object = NULL; 
@@ -38,7 +66,7 @@ int CloudAccessKeyHandle(char * buf){
 	int ret = -1;
 	
 	infor_object = json_tokener_parse(buf);
-	printf("CloudAccessKeyHandle RECV:%s\n",buf);
+	imlogV("CloudAccessKeyHandle RECV:%s\n",buf);
 	
 	json_object_object_get_ex(infor_object, IMCLOUD_ACCESSKEY_TITLE,&status_object);     
 	strcpy(status,json_object_get_string(status_object));
@@ -58,6 +86,10 @@ int CloudAccessKeyHandle(char * buf){
 	return ret;
 }
 
+/*************************************************
+ * parse Channels string
+ * i_channels:1,2,3,4
+*************************************************/
 void parseICHStr(char * str){
 	char*token=strtok(str,",");
 	int ch=0;
@@ -70,6 +102,10 @@ void parseICHStr(char * str){
 	}
 }
 
+/*************************************************
+ * parse Channels string
+ * v_channels:1
+*************************************************/
 void parseVCHStr(char * str){
 	char*token=strtok(str,",");
 	int ch=0;
@@ -82,6 +118,21 @@ void parseVCHStr(char * str){
 	}
 }
 
+/*************************************************
+Function: GenerateInfoData
+Description: Generate json data for server request
+Calls: NULL
+Called By:
+* ImCloudInfo
+Table Accessed: NULL
+Table Updated: NULL
+Input:
+* @param postdata	data for server request
+
+Output: 
+* @return 0 	Generate success
+* @return -1 	json object error
+*************************************************/
 int GenerateInfoData(char * postdata)
 {
 	struct json_object *infor_object = NULL;
@@ -119,7 +170,24 @@ int GenerateInfoData(char * postdata)
 	return 0;
 }
 
+/*************************************************
+Function: CloudInfoHandle
+Description: Parsing the data from server response
+Calls: 
+* global_resetCHFlag 
+* parseICHStr
+* parseVCHStr
+Called By:
+* ImCloudInfo
+Table Accessed: NULL
+Table Updated: NULL
+Input:
+* @param buf	server response json data
 
+Output: 
+* @return 0 	parse success
+* @return -1 	data format error(net or server errors...)
+*************************************************/
 int CloudInfoHandle(char * buf){
 	struct json_object *infor_object = NULL;
 	struct json_object *status_object = NULL; 
@@ -127,7 +195,7 @@ int CloudInfoHandle(char * buf){
 	int ret = -1;
 	
 	infor_object = json_tokener_parse(buf);
-	printf("CloudInfoHandle RECV:%s\n",buf);
+	imlogV("CloudInfoHandle RECV:%s\n",buf);
 	
 	json_object_object_get_ex(infor_object, IMCLOUD_INFO_TITLE,&status_object);     
 	strcpy(status,json_object_get_string(status_object));
@@ -139,13 +207,13 @@ int CloudInfoHandle(char * buf){
 		
 		json_object_object_get_ex(infor_object, IMCLOUD_INFO_ICH_CONTENT,&i_channels_object);      
 		if(i_channels_object!=NULL){
-			printf("%s \n",json_object_get_string(i_channels_object));
+			imlogV("%s \n",json_object_get_string(i_channels_object));
 			parseICHStr((char *)json_object_get_string(i_channels_object));
 		}
 		
 		json_object_object_get_ex(infor_object, IMCLOUD_INFO_VCH_CONTENT,&v_channels_object);
 		if(v_channels_object!=NULL){
-			printf("%s \n",json_object_get_string(v_channels_object));
+			imlogV("%s \n",json_object_get_string(v_channels_object));
 			parseVCHStr((char *)json_object_get_string(v_channels_object));
 		}
 		
@@ -160,6 +228,23 @@ int CloudInfoHandle(char * buf){
 	return ret;
 }
 
+/*************************************************
+Function: CloudDataHandle
+Description: Parsing the data from server response
+Calls: 
+* CloudGetCMD 
+* global_setTotals
+Called By:
+* ImCloudData
+Table Accessed: NULL
+Table Updated: NULL
+Input:
+* @param buf	server response json data
+
+Output: 
+* @return 0 	parse success
+* @return -1 	data format error(net or server errors...)
+*************************************************/
 void CloudDataHandle(char * buf){
 	struct json_object *infor_object = NULL;
 	struct json_object *request_object = NULL;
@@ -167,36 +252,36 @@ void CloudDataHandle(char * buf){
 	int cmd = 0;
 	
 	infor_object = json_tokener_parse(buf);
-	printf("CloudDataHandle RECV:%s\n",buf);
+	imlogV("CloudDataHandle RECV:%s\n",buf);
 	
 	json_object_object_get_ex(infor_object, IMCLOUD_DATA_TITLE,&request_object);        
 	strcpy(req,json_object_get_string(request_object));
-	printf("request:%s\n", req);
+	imlogV("request:%s\n", req);
 	cmd = CloudGetCMD(req);
 	if(cmd==IMCLOUD_CMD_NONE){
-		printf("CMD:None.\n");
+		imlogV("CMD:None.\n");
 	}else if(cmd==IMCLOUD_CMD_FW_UPDATE){
-		printf("CMD:FW Update.\n");
+		imlogV("CMD:FW Update.\n");
 	}else if(cmd==IMCLOUD_CMD_REBOOT){
 		char *exec_argv[] = { "imcloud", "0", 0 };
 		execv("/proc/self/exe", exec_argv);
-		printf("CMD:Reboot.\n");
+		imlogV("CMD:Reboot.\n");
 	}else if(cmd==IMCLOUD_CMD_INTERVAL_CHANGE){
 		struct json_object *result_object = NULL; 
 		int totals = 0;
 		json_object_object_get_ex(infor_object, IMCLOUD_DATA_INTERVAL_CONTENT,&result_object);
 		totals = json_object_get_int(result_object);
-		printf("interval:%d\n", totals);    
+		imlogV("interval:%d\n", totals);    
 		global_setTotals(totals);
 		json_object_put(result_object);//free
 	}else if(cmd==IMCLOUD_CMD_LOGLEVEL_CHANGE){
-		printf("CMD:Loglevel.\n");
+		imlogV("CMD:Loglevel.\n");
 	}else if(cmd==IMCLOUD_CMD_WAVEUPLOAD_CHANGE){
-		printf("CMD:Wave Upload.\n");
+		imlogV("CMD:Wave Upload.\n");
 	}else if(cmd==IMCLOUD_CMD_SSID_CHANGE){
-		printf("CMD:SSID Change.\n");
+		imlogV("CMD:SSID Change.\n");
 	}else{
-		printf("Error CMD:%d\n", cmd);
+		imlogE("Error CMD:%d\n", cmd);
 	}
 	
 	json_object_put(request_object);//free

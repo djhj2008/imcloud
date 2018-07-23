@@ -18,7 +18,9 @@
 #include <openssl/sha.h>
 #include <openssl/hmac.h> 
 
- int base64_encode(unsigned char *in_str, int in_len,unsigned char *out_str)
+#include "im_log.h"
+
+int base64_encode(unsigned char *in_str, int in_len,unsigned char *out_str)
 {
     BIO *b64, *bio;
     BUF_MEM *bptr = NULL;
@@ -82,16 +84,16 @@ void GenerateSAK(char * mac,  unsigned char * output)
 	char txt[128]={0x0};
 	unsigned char  hash[SHA256_DIGEST_LENGTH];
 	char *sak_seed="1234567890123456789012345678901234567890";
-	int i=0;
+	//int i=0;
 	
 	sprintf(txt,"%s:%s",mac,sak_seed);
-	printf("generateSAK:txt=%s\n",txt);
+	imlogV("generateSAK:txt=%s\n",txt);
 	sha256(txt,hash);
-	printf("sha256:");
-	for(i=0; i < SHA256_DIGEST_LENGTH; i++){
-		printf("%02X",hash[i]);
-	}
-	printf("\n");
+	//printf("sha256:");
+	//for(i=0; i < SHA256_DIGEST_LENGTH; i++){
+	//	printf("%02X",hash[i]);
+	//}
+	//printf("\n");
 	base64_encode(hash,strlen((const char *)hash),output);
 }
 
@@ -104,7 +106,7 @@ void HMACsha256(char * mac,unsigned char * input, unsigned int input_length,
     unsigned char key[64]={0x0};
 	GenerateSAK(mac,key);
 	key[40]='\0';
-	printf("SAK:%s\n",key);
+	imlogV("SAK:%s\n",key);
   
     // Be careful of the length of string with the choosen hash engine. SHA1 needed 20 characters.  
     // Change the length accordingly with your choosen hash engine.   
@@ -123,25 +125,25 @@ void GenerateSignature(char *mac_addr ,unsigned char  * Signature)
 	unsigned char  strtosign[32]= {0x0};
 	unsigned char *sha256sign=NULL;
 	int hmac_len;
-	int i = 0;
+	//int i = 0;
 	
-	printf("GenerateSignature enter.");
+	imlogV("GenerateSignature enter.");
 	
 	sprintf((char *)strtosign, "%s activate",  mac_addr);
-	printf("strtosign: %s\n",  strtosign);
+	imlogV("strtosign: %s\n",  strtosign);
 
 	sha256sign = (unsigned char *)malloc(EVP_MAX_MD_SIZE);  
 	HMACsha256(mac_addr,strtosign,(int)strlen((const char *)strtosign),sha256sign,(unsigned int *)&hmac_len);
-	printf("hmac_len: %d\n",hmac_len);
-	for(i=0;i<hmac_len;i++){
-	    printf("%02x",  sha256sign[i]);
-	}
-	printf("\n");
+	//printf("hmac_len: %d\n",hmac_len);
+	//for(i=0;i<hmac_len;i++){
+	//    printf("%02x",  sha256sign[i]);
+	//}
+	//printf("\n");
 	base64_encode(sha256sign,hmac_len,Signature);
-	printf("Signature: %s\n",  Signature);
+	imlogV("Signature: %s\n",  Signature);
 	free(sha256sign);
-	
 }
+
 
 
 

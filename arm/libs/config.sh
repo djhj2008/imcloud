@@ -1,3 +1,0 @@
-ldconfig
-ldconfig -p
-

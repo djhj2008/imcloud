@@ -4,7 +4,7 @@ OBJ = $(patsubst %.c,%.o,$(SRCS))
 
 CFLAGS := -g -lm -O2 -Werror -Wall \
   -I./include \
-  -I./plc_lib_intel \
+  -I../plc_lib_intel \
   -I../libcurl/include \
   -I../libssl-dev/include \
   -I../libjson/include \

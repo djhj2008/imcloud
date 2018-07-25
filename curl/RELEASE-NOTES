@@ -1,0 +1,135 @@
+Curl and libcurl 7.61.0
+
+ Public curl releases:         175
+ Command line options:         218
+ curl_easy_setopt() options:   258
+ Public functions in libcurl:  74
+ Contributors:                 1741
+
+This release includes the following changes:
+
+ o getinfo: add microsecond precise timers for seven intervals [3]
+ o curl: show headers in bold, switch off with --no-styled-output [10]
+ o httpauth: add support for Bearer tokens [16]
+ o Add CURLOPT_TLS13_CIPHERS and CURLOPT_PROXY_TLS13_CIPHERS [30]
+ o curl: --tls13-ciphers and --proxy-tls13-ciphers [30]
+ o Add CURLOPT_DISALLOW_USERNAME_IN_URL [32]
+ o curl: --disallow-username-in-url [32]
+
+This release includes the following bugfixes:
+
+ o schannel: disable client cert option if APIs not available [1]
+ o schannel: disable manual verify if APIs not available
+ o tests/libtest/Makefile: Do not unconditionally add gcc-specific flags [2]
+ o openssl: acknowledge --tls-max for default version too [4]
+ o stub_gssapi: fix 'unused parameter' warnings
+ o examples/progressfunc: make it build on both new and old libcurls [5]
+ o docs: mention it is HA Proxy protocol "version 1" [6]
+ o curl_fnmatch: only allow two asterisks for matching [7]
+ o docs: clarify CURLOPT_HTTPGET [8]
+ o configure: replace a AC_TRY_RUN with CURL_RUN_IFELSE [9]
+ o configure: do compile-time SIZEOF checks instead of run-time [9]
+ o checksrc: make sure sizeof() is used *with* parentheses [11]
+ o CURLOPT_ACCEPT_ENCODING.3: add brotli and clarify a bit
+ o schannel: make CAinfo parsing resilient to CR/LF [12]
+ o tftp: make sure error is zero terminated before printfing it
+ o http resume: skip body if http code 416 (range error) is ignored [13]
+ o configure: add basic test of --with-ssl prefix [14]
+ o cmake: set -d postfix for debug builds [15]
+ o multi: provide a socket to wait for in Curl_protocol_getsock [17]
+ o content_encoding: handle zlib versions too old for Z_BLOCK [18]
+ o winbuild: only delete OUTFILE if it exists [19]
+ o winbuild: In MakefileBuild.vc fix typo DISTDIR->DIRDIST [20]
+ o schannel: add failf calls for client certificate failures [21]
+ o cmake: Fix the test for fsetxattr and strerror_r
+ o curl.1: Fix cmdline-opts reference errors [22]
+ o cmdline-opts/gen.pl: warn if mutexes: or see-also: list non-existing options
+ o cmake: check for getpwuid_r [23]
+ o configure: fix ssh2 linking when built with a static mbedtls [24]
+ o psl: use latest psl and refresh it periodically [25]
+ o fnmatch: insist on escaped bracket to match [26]
+ o KNOWN_BUGS: restore text regarding #2101 [27]
+ o INSTALL: LDFLAGS=-Wl,-R/usr/local/ssl/lib [28]
+ o configure: override AR_FLAGS to silence warning [29]
+ o os400: implement mime api EBCDIC wrappers
+ o curl.rc: embed manifest for correct Windows version detection [31]
+ o strictness: correct {infof, failf} format specifiers [33]
+ o tests: update .gitignore for libtests [34]
+ o configure: check for declaration of getpwuid_r [35]
+ o fnmatch: use the system one if available [36]
+ o CURLOPT_RESOLVE: always purge old entry first [37]
+ o multi: remove a potentially bad DEBUGF() [38]
+ o curl_addrinfo: use same #ifdef conditions in source as header
+ o build: remove the Borland specific makefiles [39]
+ o axTLS: not considered fit for use [40]
+ o cmdline-opts/cert-type.d: mention "p12" as a recognized type
+ o system.h: add support for IBM xlc C compiler [41]
+ o tests/libtest: Add lib1521 to nodist_SOURCES [42]
+ o mk-ca-bundle.pl: leave certificate name untouched [43]
+ o boringssl + schannel: undef X509_NAME in lib/schannel.h [44]
+
+This release includes the following known bugs:
+
+ o see docs/KNOWN_BUGS (https://curl.haxx.se/docs/knownbugs.html)
+
+This release would not have looked like this without help, code, reports and
+advice from friends like these:
+
+  Alejandro R. Sedeño, Archangel_SDY on github, Bernhard Walle, Björn Stenberg,
+  bsammon on github, Dagobert Michelsen, Daniel Stenberg, elephoenix on github,
+  Fabrice Fontaine, Frank Gevaerts, Gisle Vanem, Ithubg on github,
+  Johannes Schindelin, Linus Lewandowski, Max Savenkov, Oleg Pudeyev,
+  Patrick Monnerat, Per Malmberg, Peter Varga, Philip Prindeville, Ray Satiro,
+  Richard Alcock, Rikard Falkeborn, Sean Miller, Sergei Nikulov,
+  Stephan Mühlstrasser, Viktor Szakats, Vladimir Kotal, Will Dietz,
+  Will Dietz , Yaakov Selkowitz, zzq1015 on github,
+  (32 contributors)
+
+        Thanks! (and sorry if I forgot to mention someone)
+
+References to bug reports and discussions on issues:
+
+ [1] = https://curl.haxx.se/bug/?i=2522
+ [2] = https://curl.haxx.se/bug/?i=2576
+ [3] = https://curl.haxx.se/bug/?i=2495
+ [4] = https://curl.haxx.se/bug/?i=2571
+ [5] = https://curl.haxx.se/bug/?i=2584
+ [6] = https://curl.haxx.se/bug/?i=2579
+ [7] = https://curl.haxx.se/bug/?i=2587
+ [8] = https://curl.haxx.se/bug/?i=2590
+ [9] = https://curl.haxx.se/bug/?i=2586
+ [10] = https://curl.haxx.se/bug/?i=2538
+ [11] = https://curl.haxx.se/bug/?i=2563
+ [12] = https://curl.haxx.se/bug/?i=2592
+ [13] = https://curl.haxx.se/bug/?i=1163
+ [14] = https://curl.haxx.se/bug/?i=2580
+ [15] = https://curl.haxx.se/bug/?i=2121
+ [16] = https://curl.haxx.se/bug/?i=2102
+ [17] = https://curl.haxx.se/mail/lib-2018-05/0062.html
+ [18] = https://curl.haxx.se/bug/?i=2606
+ [19] = https://curl.haxx.se/bug/?i=2602
+ [20] = https://curl.haxx.se/bug/?i=2603
+ [21] = https://curl.haxx.se/bug/?i=2604
+ [22] = https://curl.haxx.se/bug/?i=2612
+ [23] = https://curl.haxx.se/bug/?i=2609
+ [24] = https://curl.haxx.se/bug/?i=2613
+ [25] = https://curl.haxx.se/bug/?i=2553
+ [26] = https://curl.haxx.se/bug/?i=2614
+ [27] = https://curl.haxx.se/bug/?i=2618
+ [28] = https://curl.haxx.se/bug/?i=2615
+ [29] = https://curl.haxx.se/bug/?i=2617
+ [30] = https://curl.haxx.se/bug/?i=2435
+ [31] = https://curl.haxx.se/bug/?i=1221
+ [32] = https://curl.haxx.se/bug/?i=2340
+ [33] = https://curl.haxx.se/bug/?i=2623
+ [34] = https://curl.haxx.se/bug/?i=2624
+ [35] = https://curl.haxx.se/bug/?i=2609
+ [36] = https://curl.haxx.se/bug/?i=2626
+ [37] = https://curl.haxx.se/bug/?i=2622
+ [38] = https://curl.haxx.se/bug/?i=2627
+ [39] = https://curl.haxx.se/bug/?i=2629
+ [40] = https://curl.haxx.se/bug/?i=2628
+ [41] = https://curl.haxx.se/bug/?i=2637
+ [42] = https://curl.haxx.se/bug/?i=2633
+ [43] = https://curl.haxx.se/bug/?i=2640
+ [44] = https://curl.haxx.se/bug/?i=2634

@@ -48,6 +48,8 @@ Function List:
 #include "imcloud_controller.h"
 #include "global_var.h"
 #include "im_hiredis.h"
+#include "eeprom_tool.h"
+#include "led_tool.h"
 
 /*Global wave cache data for uploading info @im_dataform.h */
 struct waveform global_waveform[FRAMES_GROUP_MAX];
@@ -294,17 +296,21 @@ int sysInputScan(void)
     int dev_fd  = 0;
 	int index = 0;
 	int V_channel = WAVE_V1_CHANNEL;
-	int L1_channel = WAVE_L1_CHANNEL;
-	int L2_channel = WAVE_L2_CHANNEL;
+	//int L1_channel = WAVE_L1_CHANNEL;
+	//int L2_channel = WAVE_L2_CHANNEL;
     struct ping_buffer_data ping_data;
     struct waveform waveform_t[FRAMES_GROUP_MAX];
-	float w1_sum = 0;
-	float w2_sum = 0;
+	float w_sum[ADC_L_CHANNELS] = {0x0};
+	float ch_adc=0;
     char devName[128];
-	int vc = 0,ch1 = 0,ch2 = 0;
+	float vc=0;
 	int totals=0,n_totals=0;
+	float vgain = global_getVgain();
+	float igain = global_getIgain();
 
     imlogV("enter sysInputScan.\n");
+    
+    imlogV("vgain=%f,igain=%f\n",vgain,igain);
     
     memset(waveform_t,0,sizeof(struct waveform)*FRAMES_GROUP_MAX);
     
@@ -352,6 +358,7 @@ int sysInputScan(void)
 						old_val = (ping_data.sample[(sample * 3) + (ch/2)] >> 16) & 0xffff;
 					}
 					val = old_val;
+					//imlogV("CH[%d]=%d",ch,val);
 					if(ch == ADC_V1_CHANNEL){
 						waveform_t[index].data[WAVE_V1_CHANNEL*SAMPLES_FRAME+sample]=val;
 					}else if(ch == ADC_V2_CHANNEL){
@@ -359,7 +366,7 @@ int sysInputScan(void)
 					}else if(ch == ADC_L1_CHANNEL){
 						waveform_t[index].data[WAVE_L1_CHANNEL*SAMPLES_FRAME+sample]=val;
 					}else if(ch == ADC_L2_CHANNEL){
-						waveform_t[index].data[WAVE_L2_CHANNEL*SAMPLES_FRAME+sample]=val;
+						waveform_t[index].data[WAVE_L2_CHANNEL*SAMPLES_FRAME+sample]=val;						
 					}else if(ch == ADC_L3_CHANNEL){
 						waveform_t[index].data[WAVE_L3_CHANNEL*SAMPLES_FRAME+sample]=val;
 					}else if(ch == ADC_L4_CHANNEL){
@@ -368,20 +375,28 @@ int sysInputScan(void)
 				}
 			}
 			
-			w1_sum = 0;
-			w2_sum = 0;
+			
 			vc = 0;
-			ch1 = 0;
-			ch2 = 0;
+			ch_adc = 0;
+			memset(w_sum,0,sizeof(w_sum));
 			for(sample = 0; sample < SAMPLES_FRAME; sample++){
-				vc = waveform_t[index].data[V_channel*SAMPLES_FRAME+sample];
-				ch1 = waveform_t[index].data[L1_channel*SAMPLES_FRAME+sample];
-				ch2 = waveform_t[index].data[L2_channel*SAMPLES_FRAME+sample];
-				w1_sum += vc*ch1;
-				w2_sum += vc*ch2;
+				vc = waveform_t[index].data[V_channel*SAMPLES_FRAME+sample]*vgain;
+				for(ch=WAVE_L1_CHANNEL;ch<=WAVE_L4_CHANNEL;ch++){
+					ch_adc = waveform_t[index].data[ch*SAMPLES_FRAME+sample]*igain;
+					w_sum[ch] += vc*ch_adc;
+				}
 			}
-			waveform_t[index].w1 = w1_sum/SAMPLES_FRAME;
-			waveform_t[index].w2 = w2_sum/SAMPLES_FRAME;
+			
+			for(ch=WAVE_L1_CHANNEL;ch<=WAVE_L4_CHANNEL;ch++){
+				if(w_sum[ch]/64 < LED_ADC_DIRECTION_POWER){
+					led_ctrl_ADC7606_ct_direction(ch,ADC7606_LED_RED);
+				}else{
+					led_ctrl_ADC7606_ct_direction(ch,ADC7606_LED_BLUE);
+				}
+			}
+			
+			waveform_t[index].w1 = w_sum[WAVE_L1_CHANNEL]/SAMPLES_FRAME;
+			waveform_t[index].w2 = w_sum[WAVE_L2_CHANNEL]/SAMPLES_FRAME;
 			
 			waveform_t[index].rssi=get_wifi_info();
 			
@@ -717,6 +732,11 @@ int main(int arg, char *arc[])
     if (redis_init()) {
 		goto Finish;
     }
+	
+	if(im_get_Igain_Vgain()<0){
+		imlogE("EEPROM Error.\n");
+		goto Finish;
+	}
 	
 	if(getLocalMac(mac)<0){
 		imlogE("Network Error.\n");

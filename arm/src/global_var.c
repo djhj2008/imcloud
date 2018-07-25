@@ -33,9 +33,13 @@ Function List:
 * global_getTotals
 * global_getNextTotals
 * global_startNextTotals
+* global_setIgain
+* global_setVgain
+* global_getIgain
+* global_getVgain
 * 
-* @file global_var.h 
-* 
+* @file global_var.h
+*
 *************************************************/
 #include <stdint.h>
 #include <stdio.h>
@@ -60,6 +64,9 @@ uint8_t ch_flag[WAVE_CHANNEL_MAX];
 int global_totals;
 /*WaveForm next upload totals */
 int next_totals;
+/*Vgain Igain*/
+static float global_igain;
+static float global_vgain;
 
 void global_setAccesskey(char *key)
 {
@@ -190,3 +197,29 @@ void global_startNextTotals()
 		imlogV("Rest Totals %d,pre Totals %d \n",global_totals,totals);
 	}
 }
+
+/*Vgain Igain*/
+void global_setIgain(uint16_t igain)
+{
+	global_igain = igain;
+	imlogV("global_igain:%f",global_igain);
+}
+
+void global_setVgain(uint16_t vgain)
+{
+	global_vgain = vgain;
+	imlogV("global_vgain:%f",global_vgain);
+}
+
+float global_getIgain()
+{
+	return global_igain;
+}
+
+float global_getVgain()
+{
+	return global_vgain;
+}
+
+
+

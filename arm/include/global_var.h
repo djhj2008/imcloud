@@ -37,4 +37,8 @@ void global_setMac(char *mac);
 char * global_getAccesskey();
 void global_setAccesskey(char *key);
 void global_startNextTotals();
+void global_setIgain(uint16_t igain);
+void global_setVgain(uint16_t vgain);
+float global_getIgain();
+float global_getVgain();
 #endif

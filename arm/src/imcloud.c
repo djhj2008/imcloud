@@ -622,7 +622,7 @@ int getConfig()
 	char * buf = NULL;
 	struct json_object *result_object = NULL;
 	struct json_object *infor_object = NULL;
-	int totals;
+	int totals,debug_on;
 	int ret =-1;
 	int i=0;
 	
@@ -647,6 +647,12 @@ int getConfig()
 		json_object_object_get_ex(infor_object, "interval",&result_object);
 		totals = json_object_get_int(result_object);
 		json_object_put(result_object);//free
+		
+		json_object_object_get_ex(infor_object, "debug",&result_object);
+		debug_on = json_object_get_int(result_object);
+		json_object_put(result_object);//free
+		setDebugOnOff(debug_on);
+		
 		
 		if(totals >=GLOBAL_TOTALS_MIN && totals <= GLOBAL_TOTALS_MAX){
 			global_setTotals(totals);
@@ -730,7 +736,11 @@ int main(int arg, char *arc[])
 	
     /* init redis */
     if (redis_init()) {
-		goto Finish;
+		sleep(10);
+		imlogE("Redis retry...\n");
+		if (redis_init()) {
+			imlogE("Redis TimeOut...\n");
+		}
     }
 	
 	if(im_get_Igain_Vgain()<0){

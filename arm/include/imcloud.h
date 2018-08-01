@@ -19,7 +19,7 @@
 #define ADC_SAMPLE_SIZE 192
 
 #define ADC_TMP_FILE_NAME "tmp.dat"
-#define CONFIG_FILE_PATH "./config/imcloud.json"
+#define CONFIG_FILE_PATH "/etc/imcloud.json"
 
 struct ping_buffer_data{
 	//struct rtc_time tm;

@@ -1,5 +1,5 @@
 #!/bin/bash
-IMCLOUD_VERSION="1.0.0.beta"
+IMCLOUD_VERSION="1.3.6.beta"
 basepath=$(cd `dirname $0`; pwd)
 export PREFIX_CURL=${basepath}/libcurl
 export PREFIX_HIREDIS=${basepath}/libhiredis
@@ -123,7 +123,7 @@ cd ${basepath}/arm
 make clean
 make
 mkdir imcloud_${IMCLOUD_VERSION}
-cp -r ./imcloud ./libs/ imcloud.conf start.sh install.sh ./config/ imcloud_${IMCLOUD_VERSION}
+cp -r ./imcloud ./libs/ imcloud.conf imcloud.service install.sh ./config/ imcloud_${IMCLOUD_VERSION}
 tar -cvf ../imcloud_${IMCLOUD_VERSION}.tar ./imcloud_${IMCLOUD_VERSION}
 rm -rf ./imcloud_${IMCLOUD_VERSION}
 echo "End"

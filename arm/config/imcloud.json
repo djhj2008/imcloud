@@ -1,4 +1,5 @@
 {
+	"debug":1,
 	"interval":"30",
 	"icloud_activate":"https://iot.xunrun.com.cn/base/index.php/Home/time/accesskey",
 	"icloud_info":"https://iot.xunrun.com.cn/base/index.php/Home/time/info",

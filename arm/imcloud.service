@@ -1,0 +1,13 @@
+[Unit]
+Description=Imcloud Server
+After=redis-server.service
+
+[Service]
+EnvironmentFile=
+ExecStart=/usr/local/bin/imcloud
+ExecReload=/bin/killall imcloud
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

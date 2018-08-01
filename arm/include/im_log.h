@@ -10,8 +10,12 @@
 #define LOG_LEVEL 1
 #endif
 
+#define IM_DEBUG_ON 	1
+#define IM_DEBUG_OFF 	0
+
 /* =================================== API ======================================= */
 void imlogV(char *format, ...);
 void imlogE(char *format, ...);
+void setDebugOnOff(int debug_on);
 
 #endif

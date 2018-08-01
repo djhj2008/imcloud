@@ -93,7 +93,7 @@ int i2c_read_data(int fd,uint16_t addr, uint16_t offset, uint8_t *buf, int len)
 	uint8_t w_buf[2] = {0};
 
 	struct i2c_rdwr_ioctl_data data;
-    struct i2c_msg             i2cmsg[2];
+    struct i2c_msg	i2cmsg[2];
 
 
     data.msgs = i2cmsg;
@@ -130,7 +130,7 @@ int i2c_write_data(int fd,uint16_t addr, uint16_t offset, char *buf, int len)
 	uint8_t my_buf [PAGE_SIZE + 2];
 
 	struct i2c_rdwr_ioctl_data data;
-    struct i2c_msg             i2cmsg;
+    struct i2c_msg	i2cmsg;
 
 	//printf("i2c_write_data start addr : 0x%x, offset = 0x%x, len = %d\n",addr, offset, len );
 

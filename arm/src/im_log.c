@@ -26,6 +26,15 @@ Function List:
 
 #include "im_log.h"
 
+int debug_level = 1;
+
+void setDebugOnOff(int debug_on)
+{
+	debug_level = debug_on;
+	printf("setDebugOnOff:%d",debug_on);
+}
+
+
 void imlogV(char *format, ...)
 {
     int iLen = 0;
@@ -35,7 +44,7 @@ void imlogV(char *format, ...)
     time_t timep;
     struct tm *tmp = NULL;
  
-	if(LOG_LEVEL==0){
+	if(IM_DEBUG_OFF==debug_level){
 		return;
 	}
  

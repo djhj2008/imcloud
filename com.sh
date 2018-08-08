@@ -1,5 +1,5 @@
 #!/bin/bash
-IMCLOUD_VERSION="1.3.6.beta"
+IMCLOUD_VERSION="2.0.0.beta"
 basepath=$(cd `dirname $0`; pwd)
 export PREFIX_CURL=${basepath}/libcurl
 export PREFIX_HIREDIS=${basepath}/libhiredis

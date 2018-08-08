@@ -88,6 +88,7 @@ int ImCloudData(uint8_t * data,int len,int try)
 	char *mac = global_getMac();
 	char *key = global_getAccesskey();
 	char *url = global_getUrl(ICLOUD_URL_DATA);
+	int cmd = IMCLOUD_CMD_NONE;
 	
 	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac,key);
     imlogV("chunkstr: %s\n",  chunkstr);
@@ -101,15 +102,20 @@ int ImCloudData(uint8_t * data,int len,int try)
 			sleep(5);
 			ret = ImHttpPost(url,chunkstr,data,len,buffer);
 			if(ret == 0){
-				CloudDataHandle(buffer);
+				cmd = CloudDataHandle(buffer);
 				break;
 			}
 			retry--;
 		}
 	}
 	else{
-		CloudDataHandle(buffer);
+		cmd = CloudDataHandle(buffer);
 	}
+	
+	if(cmd == IMCLOUD_CMD_FW_UPDATE){
+		//TODO down firmware
+	}
+	
 	imlogV("ImCloudData end.\n");
 	return ret;
 }
@@ -616,14 +622,15 @@ Output:
 *************************************************/
 int getConfig()
 {
+	int ret =-1;
+	char * buf = NULL;
+/*	
 	int fd;
 	int count;
 	int size;
-	char * buf = NULL;
 	struct json_object *result_object = NULL;
 	struct json_object *infor_object = NULL;
 	int totals,debug_on;
-	int ret =-1;
 	int i=0;
 	
 	size = get_file_size(CONFIG_FILE_PATH);
@@ -662,15 +669,17 @@ int getConfig()
 			global_startNextTotals();
 		}
 		
-		json_object_object_get_ex(infor_object, "icloud_activate",&result_object);
+		json_object_object_get_ex(infor_object, "imcloud_activate",&result_object);
 		global_setUrl(json_object_get_string(result_object),ICLOUD_URL_ACTIVATE);
 
-		json_object_object_get_ex(infor_object, "icloud_info",&result_object);
+		json_object_object_get_ex(infor_object, "imcloud_info",&result_object);
 		global_setUrl(json_object_get_string(result_object),ICLOUD_URL_INFO);
 		
-		json_object_object_get_ex(infor_object, "icloud_data",&result_object);
+		json_object_object_get_ex(infor_object, "imcloud_data",&result_object);
 		global_setUrl(json_object_get_string(result_object),ICLOUD_URL_DATA);
 		
+		json_object_object_get_ex(infor_object, "imcloud_fw",&result_object);
+		global_setUrl(json_object_get_string(result_object),ICLOUD_URL_FW);
 		
 		json_object_put(infor_object);//free
 		
@@ -682,18 +691,21 @@ int getConfig()
 			ret = 0;
 		}
 	}
-	if(ret<0){
+*/
+	//if(ret<0){
 		global_setTotals(GLOBAL_TOTALS_DEFAULT);
 		global_startNextTotals();
-		global_setUrl(GLOBAL_URL_ACCESSKEY,ICLOUD_URL_ACTIVATE);
-		global_setUrl(GLOBAL_URL_INFO,ICLOUD_URL_INFO);
-		global_setUrl(GLOBAL_URL_DATA,ICLOUD_URL_DATA);
+		global_setUrl(ICLOUD_URL_ACTIVATE);
+		global_setUrl(ICLOUD_URL_INFO);
+		global_setUrl(ICLOUD_URL_DATA);
+		global_setUrl(ICLOUD_URL_FW);
 		ret = 0;
-	}
+	//}
 
 	imlogV("URL = %s\n",global_getUrl(ICLOUD_URL_ACTIVATE));
 	imlogV("URL = %s\n",global_getUrl(ICLOUD_URL_INFO));
 	imlogV("URL = %s\n",global_getUrl(ICLOUD_URL_DATA));
+	imlogV("URL = %s\n",global_getUrl(ICLOUD_URL_FW));
 	
 	if(buf != NULL){
 		free(buf);

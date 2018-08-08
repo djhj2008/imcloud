@@ -83,7 +83,7 @@ void GenerateSAK(char * mac,  unsigned char * output)
 {
 	char txt[128]={0x0};
 	unsigned char  hash[SHA256_DIGEST_LENGTH];
-	char *sak_seed="1234567890123456789012345678901234567890";
+	char *sak_seed="tnjJExP3IhDEAEyzBd+Fo6GF3l4c4y4j3IgduB4i";
 	//int i=0;
 	
 	sprintf(txt,"%s:%s",mac,sak_seed);

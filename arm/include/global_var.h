@@ -11,11 +11,16 @@
 
 #define GLOBAL_TOTALS_MIN 5
 #define GLOBAL_TOTALS_MAX 300
-
 #define GLOBAL_TOTALS_DEFAULT 10
-#define GLOBAL_URL_ACCESSKEY "https://iot.xunrun.com.cn/base/index.php/Home/time/accesskey"
-#define GLOBAL_URL_INFO "https://iot.xunrun.com.cn/base/index.php/Home/time/info"
-#define GLOBAL_URL_DATA "https://iot.xunrun.com.cn/base/test.php"
+
+#define GLOBAL_URL_VERSION "1"
+#define GLOBAL_DOMAIN_DEFAULT "35.229.162.114"
+#define GLOBAL_URL_HEADER "https://"
+#define GLOBAL_URL_CONTENT "/imcloud/meter/"
+#define GLOBAL_URL_ACCESSKEY "/activate"
+#define GLOBAL_URL_INFO "/info"
+#define GLOBAL_URL_DATA "/data"
+#define GLOBAL_URL_FW "/fw"
 
 /* =================================== API ======================================= */
 void global_setAccessKey(char * key);
@@ -30,7 +35,7 @@ void global_setIchFlag(int ich);
 void global_setVchFlag(int vch);
 int global_getChFlag(int ch);
 void global_dumpCH();
-void global_setUrl(const char *url,enum ICOULD_URL index);
+void global_setUrl(enum ICOULD_URL index);
 char * global_getUrl(enum ICOULD_URL index);
 char * global_getMac();
 void global_setMac(char *mac);

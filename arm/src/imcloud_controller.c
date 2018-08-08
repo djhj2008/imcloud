@@ -245,7 +245,7 @@ Output:
 * @return 0 	parse success
 * @return -1 	data format error(net or server errors...)
 *************************************************/
-void CloudDataHandle(char * buf){
+int CloudDataHandle(char * buf){
 	struct json_object *infor_object = NULL;
 	struct json_object *request_object = NULL;
 	char req[128]={0};
@@ -261,7 +261,33 @@ void CloudDataHandle(char * buf){
 	if(cmd==IMCLOUD_CMD_NONE){
 		imlogV("CMD:None.\n");
 	}else if(cmd==IMCLOUD_CMD_FW_UPDATE){
+		struct json_object *result_object = NULL; 
+		int version;
+		char domain[128]={0x0};
+		char tmp[16]={0x0};
+		//int checksum=0;
+		int size=0;
+		
+		json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_VERSION_CONTENT,&result_object);	
+		version = json_object_get_int(result_object);
+		json_object_put(result_object);//free
+		imlogV("fw version=%d",version);
+		
+		json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_DOMAIN_CONTENT,&result_object);	
+		strcpy(domain,json_object_get_string(request_object));
+		json_object_put(result_object);//free
+		
+		json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_CHECKSUM_CONTENT,&result_object);	
+		strcpy(tmp,json_object_get_string(request_object));
+		json_object_put(result_object);//free
+			
+		json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_SIZE_CONTENT,&result_object);	
+		size = json_object_get_int(result_object);
+		json_object_put(result_object);//free 
+		imlogV("fw size=%d",size);
+		
 		imlogV("CMD:FW Update.\n");
+		
 	}else if(cmd==IMCLOUD_CMD_REBOOT){
 		char *exec_argv[] = { "imcloud", "0", 0 };
 		execv("/proc/self/exe", exec_argv);
@@ -271,7 +297,7 @@ void CloudDataHandle(char * buf){
 		int totals = 0;
 		json_object_object_get_ex(infor_object, IMCLOUD_DATA_INTERVAL_CONTENT,&result_object);
 		totals = json_object_get_int(result_object);
-		imlogV("interval:%d\n", totals);    
+		imlogV("interval:%d\n", totals);
 		global_setTotals(totals);
 		json_object_put(result_object);//free
 	}else if(cmd==IMCLOUD_CMD_LOGLEVEL_CHANGE){
@@ -286,6 +312,8 @@ void CloudDataHandle(char * buf){
 	
 	json_object_put(request_object);//free
 	json_object_put(infor_object);//free
+	
+	return cmd;
 }
 
 int CloudGetCMD(char * req){

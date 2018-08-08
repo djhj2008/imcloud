@@ -89,9 +89,36 @@ char * global_getMac()
 	return mac_addr;
 }
 
-void global_setUrl(const char *url,enum ICOULD_URL index)
+#define GLOBAL_URL_VERSION "1"
+#define GLOBAL_DOMAIN_DEFAULT "35.229.162.114"
+#define GLOBAL_URL_HEADER "http://"
+#define GLOBAL_URL_CONTENT "/imcloud/meter/"
+#define GLOBAL_URL_ACCESSKEY "/activate"
+#define GLOBAL_URL_INFO "/info"
+#define GLOBAL_URL_DATA "/data"
+#define GLOBAL_URL_FW "/fw"
+
+void global_setUrl(enum ICOULD_URL index)
 {
-	strcpy(cloud_url[index],url);
+	char buf[256]={0x0};
+	
+	strcpy(buf,GLOBAL_URL_HEADER);
+	strcat(buf,GLOBAL_DOMAIN_DEFAULT);
+	strcat(buf,GLOBAL_URL_CONTENT);
+	strcat(buf,GLOBAL_URL_VERSION);
+	if(index == ICLOUD_URL_ACTIVATE){
+		strcat(buf,GLOBAL_URL_ACCESSKEY);
+	}
+	else if(index == ICLOUD_URL_INFO){
+		strcat(buf,GLOBAL_URL_INFO);
+	}
+	else if(index == ICLOUD_URL_DATA){
+		strcat(buf,GLOBAL_URL_DATA);
+	}
+	else if(index == ICLOUD_URL_FW){
+		strcat(buf,GLOBAL_URL_FW);
+	}
+	strcpy(cloud_url[index],buf);
 }
 
 char * global_getUrl(enum ICOULD_URL index)

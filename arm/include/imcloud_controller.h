@@ -72,6 +72,6 @@ enum IMCOULD_CMD {
 int CloudAccessKeyHandle(char * buf);
 int GenerateInfoData(char * postdata);
 int CloudInfoHandle(char * buf);
-void CloudDataHandle(char * buf);
+int CloudDataHandle(char * buf);
 int CloudGetCMD(char * req);
 #endif

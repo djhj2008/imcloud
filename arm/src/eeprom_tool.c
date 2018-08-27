@@ -205,10 +205,11 @@ void i2c_close(int fd)
 	close(fd);
 }
  
-int im_get_Igain_Vgain(){
-	//uint8_t buffer[VIGAIN_SIZE]={0x0};
+int im_init_e2prom_data()
+{
 	uint16_t igain=0;
 	uint16_t vgain=0; 
+	uint8_t frq=0;
 	int fd;
 	int ret = -1;
 
@@ -219,13 +220,22 @@ int im_get_Igain_Vgain(){
 	read_data(fd,EEPROM_SLAVER_ADDR, IGAIN_ADDR, (uint8_t *)&igain, VIGAIN_SIZE);
 	imlogV("igain=%d",igain);
 	global_setIgain(igain);
+	read_data(fd,EEPROM_SLAVER_ADDR, VGAIN_ADDR, (uint8_t *)&frq, sizeof(uint8_t));
 	i2c_close(fd);
+	//0.006115934
+	//0.021515549
 	if(vgain>1||igain>1){
-		global_setIgain(1);
-		global_setVgain(1);
+		global_setIgain(0x0190);
+		global_setVgain(0x0582);
 		ret = 0;
 	}
 
+	if(frq==0){
+		global_setAdcFrq(AC_LINE_FREQUENCY_50);
+	}else{
+		global_setAdcFrq(AC_LINE_FREQUENCY_60);
+	}
 	return ret;
 }
+
 

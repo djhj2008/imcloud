@@ -34,26 +34,37 @@ struct waveform{
 	int8_t rssi;			//wifi signal intensity
 	float w1;				//line L1 capacity.
 	float w2;				//line L2 capacity.
+	float w3;
+	float w4;
 	int16_t data[ADC_SAMPLE_CHANNEL*SAMPLES_FRAME];	//Data for six channels. info @config.h
 };
+
+#define WAVE_FORM_HEAD_LEN	 	12
+#define WAVE_FORM_VERSION 		1
+#define WAVE_FORM_TOTAL 		2
+#define WAVE_FORM_FLAG 			1
+#define WAVE_FORM_IGAIN 		2
+#define WAVE_FORM_VGAIN			2
+#define WAVE_FORM_TIME 			4
 
 /* Upload data head */
 struct data_header{
 	uint8_t version;	//version always
 	uint16_t total;
 	uint8_t flag;
-	float igain;
-	float vgain;
+	uint16_t igain;
+	uint16_t vgain;
 	uint32_t start_time;
 };
 
 #pragma pack()
 /* =================================== API ======================================= */
-uint8_t * GenerateWaveform(char * file,int *len ,int ichannels,int vchannels,int totals,uint8_t flag);
+uint8_t * GenerateWaveform(char * file,int *len ,int * first_time,int ichannels,int vchannels,int totals,uint8_t flag);
 ple_uint8_t* ple_decode(struct waveform *waveform_t,
 									int sub_index,
 									uint8_t ucCurrentChannels,
 									uint8_t ucVoltageChannels,
 									uint16_t ucFramesPerGroup ,
 									int *size);
+int GenerateWaveFile(char * file,int *len ,int * first_time,int ichannels,int vchannels,int totals,uint8_t flag);
 #endif

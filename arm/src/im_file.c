@@ -111,8 +111,21 @@ void get_filename(char * filename)
 	
 }
 
+FILE* im_getfile(char* filename)
+{
+	char dirpath[MAX_DIRPATH_LEN]={0x0};
+	char src_path[MAX_DIRPATH_LEN]={0x0};
+	FILE *fd;
+    
+    strcpy(dirpath, DEFAULT_DIRPATH);//默认的路径为data
+    sprintf(src_path,"%s/%s",dirpath,filename);
+    fd = fopen(src_path,"r");
+    
+	return fd;
+}
 
-int im_savefile(char* filename,char * buf,int len)
+
+int im_savefile(char* filename,char *buf,int len)
 {
     struct stat file_stat;
     int ret;
@@ -175,7 +188,6 @@ int im_delfile(char *filename){
 
 int im_backfile(char* filename)
 {
-	char src_path[MAX_DIRPATH_LEN]={0x0};
 	char des_path[MAX_DIRPATH_LEN]={0x0};
 	struct stat file_stat;
     int ret;
@@ -209,10 +221,9 @@ int im_backfile(char* filename)
 	
 	get_filename(file_back);
 	
-	sprintf(src_path,"%s/%s",DEFAULT_DIRPATH,filename);
 	sprintf(des_path,"%s/%s.bak",SAVE_DIRPATH,file_back);
 	
-	ret = im_copyfile(src_path,des_path);
+	ret = im_copyfile(filename,des_path);
 	if(ret == 0 ){
 		im_redis_backup_push(file_back);
 		im_delfile(filename);

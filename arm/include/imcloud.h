@@ -9,7 +9,7 @@
 
 #define ACCESS_KEY_SIZE 64
 
-#define MAC_LEN 12
+#define MAC_LEN 16
 #define HTTP_RETRY_NONE 0
 #define HTTP_RETRY_MAX 3
 
@@ -37,7 +37,7 @@ enum ICOULD_URL {
 };
 
 /* =================================== API ======================================= */
-int ImCloudData(uint8_t * data,int len,int try);
+int ImCloudData(uint8_t * data,int first_time,int len,int try);
 int ImCloudInfo();
 int ImCloudAccessKey();
 int openInputDev(const char* inputName);

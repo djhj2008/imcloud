@@ -15,9 +15,14 @@
 
 #define EEPROM_SLAVER_ADDR 0x51
 #define VIGAIN_SIZE 2
-#define VGAIN_ADDR 0x19
-#define IGAIN_ADDR 0x1b
+
+#define ADC_FREQUENCY 	0x14
+#define VGAIN_ADDR 		0x19
+#define IGAIN_ADDR 		0x1b
+
+#define AC_LINE_FREQUENCY_50 50 //50Hz or 60Hz
+#define AC_LINE_FREQUENCY_60 60 //50Hz or 60Hz
 
 /* =================================== API ======================================= */
-int im_get_Igain_Vgain();
+int im_init_e2prom_data();
 #endif

@@ -6,11 +6,14 @@
 #ifndef __IMCLOUD_CONTROLLER_H__
 #define __IMCLOUD_CONTROLLER_H__
 
+#define IMCLOUD_SERVER_MESSAGE		"message"
 /*Interface Get Access Key*/
-#define IMCLOUD_ACCESSKEY_TITLE		"status"
-
-#define IMCLOUD_ACCESSKEY_CONTENT	"access_key"
-#define IMCLOUD_ACCESSKEY_RESULT	"ok"
+#define IMCLOUD_ACCESSKEY_TITLE			"status"
+#define IMCLOUD_ACCESSKEY_CONTENT		"access_key"
+#define IMCLOUD_ACCESSKEY_STATUS_OK		"ok"
+#define IMCLOUD_ACCESSKEY_STATUS_FAIL	"fail"
+#define IMCLOUD_ACCESSKEY_NOT_ALLOWED	"ActivationNotAllowed"
+#define IMCLOUD_ACCESSKEY_SIG_NOTMATCH	"SignatureDoesNotMatch"
 
 /*Interface Info*/
 #define IMCLOUD_INFO_TITLE			"status"

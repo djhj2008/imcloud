@@ -238,14 +238,15 @@ int getLocalMac(char * mac_addr)
   
     close(sock_mac);
 
-    if(ifr_mac.ifr_flags & IFF_RUNNING)
-	return -1;
+    if(ifr_mac.ifr_flags & IFF_RUNNING){
+		return -1;
+	}
     else{
-
-        sprintf(mac_addr, "%02X%02X%02X%02X%02X%02X",  
-            (unsigned char)ifr_mac.ifr_hwaddr.sa_data[0],  
+        sprintf(mac_addr, "%02X%02X%02X%02X%02X%02X%02X%02X",  
+            (unsigned char)ifr_mac.ifr_hwaddr.sa_data[0]&~0x02,  
             (unsigned char)ifr_mac.ifr_hwaddr.sa_data[1],  
-            (unsigned char)ifr_mac.ifr_hwaddr.sa_data[2],  
+            (unsigned char)ifr_mac.ifr_hwaddr.sa_data[2], 
+             0xff,0xfe,
             (unsigned char)ifr_mac.ifr_hwaddr.sa_data[3],  
             (unsigned char)ifr_mac.ifr_hwaddr.sa_data[4],  
             (unsigned char)ifr_mac.ifr_hwaddr.sa_data[5]  

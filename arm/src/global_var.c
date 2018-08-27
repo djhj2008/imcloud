@@ -45,12 +45,14 @@ Function List:
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>  
+#include <math.h>
 
 #include "im_log.h"
 #include "config.h"
 #include "imcloud_controller.h"
 #include "im_dataform.h"
 #include "imcloud.h"
+#include "global_var.h"
 
 /* get from server.needed other server interface */
 char access_key[128]={0};
@@ -65,8 +67,19 @@ int global_totals;
 /*WaveForm next upload totals */
 int next_totals;
 /*Vgain Igain*/
-static float global_igain;
-static float global_vgain;
+static uint16_t global_igain;
+static uint16_t global_vgain;
+static uint8_t global_adc_frq;
+
+void global_setAdcFrq(uint8_t hz)
+{
+	global_adc_frq=hz;
+}
+
+uint8_t gloal_getAdcFrq()
+{
+	return global_adc_frq;
+}
 
 void global_setAccesskey(char *key)
 {
@@ -89,15 +102,6 @@ char * global_getMac()
 	return mac_addr;
 }
 
-#define GLOBAL_URL_VERSION "1"
-#define GLOBAL_DOMAIN_DEFAULT "35.229.162.114"
-#define GLOBAL_URL_HEADER "http://"
-#define GLOBAL_URL_CONTENT "/imcloud/meter/"
-#define GLOBAL_URL_ACCESSKEY "/activate"
-#define GLOBAL_URL_INFO "/info"
-#define GLOBAL_URL_DATA "/data"
-#define GLOBAL_URL_FW "/fw"
-
 void global_setUrl(enum ICOULD_URL index)
 {
 	char buf[256]={0x0};
@@ -105,7 +109,6 @@ void global_setUrl(enum ICOULD_URL index)
 	strcpy(buf,GLOBAL_URL_HEADER);
 	strcat(buf,GLOBAL_DOMAIN_DEFAULT);
 	strcat(buf,GLOBAL_URL_CONTENT);
-	strcat(buf,GLOBAL_URL_VERSION);
 	if(index == ICLOUD_URL_ACTIVATE){
 		strcat(buf,GLOBAL_URL_ACCESSKEY);
 	}
@@ -226,16 +229,35 @@ void global_startNextTotals()
 }
 
 /*Vgain Igain*/
+float short2float(uint16_t a)
+{
+  int i=0;
+  int max=16;
+  float c = 0;
+  for(i=0;i<max;i++){
+      int t= (a>>i)&0x01;
+      if(t==1){
+        short x = 0-(max-i);
+        float m=0;
+        //printf("x=%d\n",x);
+		m=pow(2,x);
+        c+=m;
+		//printf("m=%f,c=%f\n",m,c);
+      }
+  }
+  return c;
+}
+
 void global_setIgain(uint16_t igain)
 {
 	global_igain = igain;
-	imlogV("global_igain:%f",global_igain);
+	imlogV("global_igain:%d",global_igain);
 }
 
 void global_setVgain(uint16_t vgain)
 {
 	global_vgain = vgain;
-	imlogV("global_vgain:%f",global_vgain);
+	imlogV("global_vgain:%d",global_vgain);
 }
 
 float global_getIgain()

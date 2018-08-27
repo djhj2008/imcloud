@@ -72,14 +72,15 @@ Table Accessed: NULL
 Table Updated: NULL
 Input:
 * @param data	uploading data
-* @param data	uploading data length
-* @param data	Http Error retry times (HTTP_RETRY_NONE,HTTP_RETRY_MAX...)	@imcloud.h
+* @param first_time URL start time
+* @param len	uploading data length
+* @param try	Http Error retry times (HTTP_RETRY_NONE,HTTP_RETRY_MAX...)	@imcloud.h
 
 Output: 
 * @return 0 	uploading success
 * @return -1 	uploading failed(net or server errors...)
 *************************************************/
-int ImCloudData(uint8_t * data,int len,int try)
+int ImCloudData(uint8_t * data,int first_time,int len,int try)
 {
 	char buffer[HTTP_RECV_BUF_MAX] = {0x0};
 	char chunkstr[HTTP_CHUNK_HEAD_LEN]= {0x0};
@@ -89,18 +90,24 @@ int ImCloudData(uint8_t * data,int len,int try)
 	char *key = global_getAccesskey();
 	char *url = global_getUrl(ICLOUD_URL_DATA);
 	int cmd = IMCLOUD_CMD_NONE;
+	char data_url[256]={0x0};
+	char str_time[16]={0x0};
 	
 	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac,key);
     imlogV("chunkstr: %s\n",  chunkstr);
+    sprintf(str_time,"%d",first_time);
+    strcpy(data_url,url);
+    strcat(data_url,str_time);
+	imlogV("Data URL: %s\n",  data_url);
 
-	ret = ImHttpPost(url,chunkstr,data,len,buffer);
-
+	//ret = ImHttpPostStream(data_url,chunkstr,first_time,len,buffer);
+	ret = ImHttpPost(data_url,chunkstr,data,len,buffer);
 	if(ret < 0){
 		imlogE("CloudDataHandle Error:%s\n",buffer);
 		while(retry > 0){
 			imlogE("ImHttpPost retry: %d,wait 5 sec.\n",  retry);
 			sleep(5);
-			ret = ImHttpPost(url,chunkstr,data,len,buffer);
+			ret = ImHttpPostStream(data_url,chunkstr,first_time,len,buffer);
 			if(ret == 0){
 				cmd = CloudDataHandle(buffer);
 				break;
@@ -114,6 +121,8 @@ int ImCloudData(uint8_t * data,int len,int try)
 	
 	if(cmd == IMCLOUD_CMD_FW_UPDATE){
 		//TODO down firmware
+	}else if(cmd == -1){
+		ret = -1;
 	}
 	
 	imlogV("ImCloudData end.\n");
@@ -162,13 +171,13 @@ int ImCloudInfo()
 	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac,key);
     imlogV("chunkstr: %s\n",  chunkstr);
 
-	ret = ImHttpPostStr(url,chunkstr,(uint8_t *)postdata,strlen(postdata),buffer);
+	ret = ImHttpPost(url,chunkstr,(uint8_t *)postdata,strlen(postdata),buffer);
 
 	if(ret < 0){
 		while(retry > 0){
 			imlogE("ImHttpPost retry: %d,wait 5 sec.\n",retry);
 			sleep(5);
-			ret = ImHttpPostStr(url,chunkstr,NULL,0,buffer);
+			ret = ImHttpPost(url,chunkstr,(uint8_t *)postdata,strlen(postdata),buffer);
 			if(ret == 0){
 				ret = CloudInfoHandle(buffer);
 				break;
@@ -211,19 +220,20 @@ int ImCloudAccessKey()
 	int retry = HTTP_RETRY_MAX;
 	char *mac = global_getMac();
 	char *url = global_getUrl(ICLOUD_URL_ACTIVATE);
+	char *data="NONE";
 	
 	GenerateSignature(mac,Signature);
 	
 	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac,Signature);
     imlogV("chunkstr: %s\n",  chunkstr);
 
-	ret = ImHttpPost(url,chunkstr,NULL,0,buffer);
+	ret = ImHttpPost(url,chunkstr,(uint8_t *)data,0,buffer);
 
 	if(ret < 0){
 		while(retry > 0){
 			imlogE("ImHttpPost retry: %d,wait 5 sec.\n",retry);
 			sleep(5);
-			ret = ImHttpPost(url,chunkstr,NULL,0,buffer);
+			ret = ImHttpPost(url,chunkstr,(uint8_t *)data,0,buffer);
 			if(ret == 0){
 				ret = CloudAccessKeyHandle(buffer);
 				break;
@@ -301,22 +311,25 @@ int sysInputScan(void)
     int sample = 0;     
     int dev_fd  = 0;
 	int index = 0;
-	int V_channel = WAVE_V1_CHANNEL;
+	//int V_channel = WAVE_V1_CHANNEL;
 	//int L1_channel = WAVE_L1_CHANNEL;
 	//int L2_channel = WAVE_L2_CHANNEL;
     struct ping_buffer_data ping_data;
     struct waveform waveform_t[FRAMES_GROUP_MAX];
 	float w_sum[ADC_L_CHANNELS] = {0x0};
+	float v_sum=0;
 	float ch_adc=0;
     char devName[128];
 	float vc=0;
 	int totals=0,n_totals=0;
-	float vgain = global_getVgain();
-	float igain = global_getIgain();
+	uint16_t vgain = global_getVgain();
+	uint16_t igain = global_getIgain();
+	float vgain_f = short2float(vgain);
+	float igain_f = short2float(igain);
 
     imlogV("enter sysInputScan.\n");
     
-    imlogV("vgain=%f,igain=%f\n",vgain,igain);
+    imlogV("vgain=%f,igain=%f\n",vgain_f,igain_f);
     
     memset(waveform_t,0,sizeof(struct waveform)*FRAMES_GROUP_MAX);
     
@@ -349,7 +362,7 @@ int sysInputScan(void)
 				imlogV("index: %d time stamp: %d \n",index, waveform_t[index].time_stamp);
 			}
 			for(i = 0; i< 2; i++){
-				imlogV("pnumber[%d]= 0x%x\n", i, ping_data.pnumber[i]);
+				//imlogV("pnumber[%d]= 0x%x\n", i, ping_data.pnumber[i]);
 			}
 			for(ch = 0; ch < ADC_SAMPLE_CHANNEL; ch++){
 				int flag = ch % 2;
@@ -384,13 +397,15 @@ int sysInputScan(void)
 			
 			vc = 0;
 			ch_adc = 0;
+			v_sum = 0;
 			memset(w_sum,0,sizeof(w_sum));
 			for(sample = 0; sample < SAMPLES_FRAME; sample++){
-				vc = waveform_t[index].data[V_channel*SAMPLES_FRAME+sample]*vgain;
+				vc = waveform_t[index].data[WAVE_V1_CHANNEL*SAMPLES_FRAME+sample]*vgain_f;
 				for(ch=WAVE_L1_CHANNEL;ch<=WAVE_L4_CHANNEL;ch++){
-					ch_adc = waveform_t[index].data[ch*SAMPLES_FRAME+sample]*igain;
+					ch_adc = waveform_t[index].data[ch*SAMPLES_FRAME+sample]*igain_f;
 					w_sum[ch] += vc*ch_adc;
 				}
+				v_sum+=vc;
 			}
 			
 			for(ch=WAVE_L1_CHANNEL;ch<=WAVE_L4_CHANNEL;ch++){
@@ -403,13 +418,15 @@ int sysInputScan(void)
 			
 			waveform_t[index].w1 = w_sum[WAVE_L1_CHANNEL]/SAMPLES_FRAME;
 			waveform_t[index].w2 = w_sum[WAVE_L2_CHANNEL]/SAMPLES_FRAME;
+			waveform_t[index].w3 = w_sum[WAVE_L3_CHANNEL]/SAMPLES_FRAME;
+			waveform_t[index].w4 = w_sum[WAVE_L4_CHANNEL]/SAMPLES_FRAME;
 			
 			waveform_t[index].rssi=get_wifi_info();
 			
 			
 			totals = global_getTotals();
 			n_totals = global_getNextTotals();
-			imlogV("global_totals = %d next_totals =%d rssi = %d w1 = %f w2 = %f\n",totals, n_totals,waveform_t[index].rssi,waveform_t[index].w1,waveform_t[index].w2);
+			imlogV("global_totals = %d next_totals =%d rssi = %d v=%f w1 = %f w2 = %f w3 = %f w4 = %f\n",totals, n_totals,waveform_t[index].rssi,v_sum/SAMPLES_FRAME,waveform_t[index].w1,waveform_t[index].w2,waveform_t[index].w3,waveform_t[index].w4);
 			
 			//global_startNextTotals(); //change when next package
 			
@@ -417,19 +434,15 @@ int sysInputScan(void)
 			if(index == totals){
 				//imlogV("wave_size:%d,otherform_t:%d \n",sizeof(waveform_t),sizeof(otherform_t));
 				memcpy(global_waveform,waveform_t,sizeof(struct waveform)*totals);
-
 				memset(waveform_t,0,sizeof(struct waveform)*FRAMES_GROUP_MAX);
-				
 				thpool_add_work(thpool, (void*)task, NULL); 
 				index = 0;
-				
+
 			}else if(index > totals){
 				int remaining = index-totals;
 				imlogV("remaining:%d \n",remaining);
 				memcpy(global_waveform,waveform_t,sizeof(struct waveform)*totals);
-				
 				memcpy(waveform_t,&waveform_t[totals],sizeof(struct waveform)*remaining);
-  
 				thpool_add_work(thpool, (void*)task, NULL);
 				index -= totals;
 			}
@@ -482,6 +495,7 @@ void *task(void *arg)
 	char filepath[CONFIG_FILEPATH_LEN]={0x0};
 	int backup_len = 0;
 	int i=0;
+	int first_time=0;
 	
 	get_filename(filename);
 	
@@ -512,10 +526,12 @@ void *task(void *arg)
 			im_redis_get_list_head(name);
 			sprintf(file,"%s/%s.bak",SAVE_DIRPATH,name);
 			imlogE("backup file:%s \n",file);
-			postdata = GenerateWaveform(file,&len,icount,vcount,totals,flag);
+			postdata = GenerateWaveform(file,&len,&first_time,icount,vcount,totals,flag);
+			
 			if(postdata!=NULL){
 				imlogV("post len = %d \n",len);
-				if(ImCloudData(postdata,len,HTTP_RETRY_NONE)==0){
+				imlogV("post first_time = %d \n",first_time);
+				if(ImCloudData(postdata,first_time,len,HTTP_RETRY_NONE)==0){
 					im_delfile(file);
 					im_redis_pop_head();
 					imlogE("ImCloud Send Backup OK.\n");
@@ -529,23 +545,45 @@ void *task(void *arg)
 		}
 	}
 	
-	
 	len = 0;
 	sprintf(filepath,"%s/%s",DEFAULT_DIRPATH,filename);
-	postdata = GenerateWaveform(filepath,&len,icount,vcount,totals,flag);
+	postdata = GenerateWaveform(filepath,&len,&first_time,icount,vcount,totals,flag);
 	if(postdata!=NULL){
+		//im_delfile(filepath);
 		imlogV("post len = %d \n",len);
 	}else{
 		imlogE("postdata NULL \n");
 		return NULL;
 	}
 	
-	if(ImCloudData(postdata,len,HTTP_RETRY_MAX)==0){
+	//sprintf(filepath,"%s/%d.bin",DEFAULT_DIRPATH,first_time);
+	if(ImCloudData(postdata,first_time,len,HTTP_RETRY_MAX)==0){
 		im_delfile(filepath);
 	}else{
-		imlogE("ImCloud Activate Error.\n");
-		im_backfile(filename); 
+		imlogE("ImCloud Data Error.\n");
+		im_backfile(filepath); 
 	}
+	/*
+	len = 0;
+	sprintf(filepath,"%s/%s",DEFAULT_DIRPATH,filename);
+	int result = GenerateWaveFile(filepath,&len,&first_time,icount,vcount,totals,flag);
+	if(result==0){
+		im_delfile(filepath);
+		imlogV("post len = %d \n",len);
+	}else{
+		imlogE("postdata NULL \n");
+		return NULL;
+	}
+	
+	//im_savefile("upload.bin",(char * )postdata,len);
+	sprintf(filepath,"%s/%d.bin",DEFAULT_DIRPATH,first_time);
+	if(ImCloudData(postdata,first_time,len,HTTP_RETRY_MAX)==0){
+		//im_delfile(filepath);
+	}else{
+		imlogE("ImCloud Data Error.\n");
+		im_backfile(filepath); 
+	}
+	*/
 	im_redis_backup_dump();
 	free(postdata);
 
@@ -755,7 +793,7 @@ int main(int arg, char *arc[])
 		}
     }
 	
-	if(im_get_Igain_Vgain()<0){
+	if(im_init_e2prom_data()<0){
 		imlogE("EEPROM Error.\n");
 		goto Finish;
 	}

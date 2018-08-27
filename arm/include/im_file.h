@@ -19,6 +19,7 @@ int im_scanDir() ;
 int im_copyfile(char const *src_path, char const *des_path);
 int im_backfile(char* filename);
 int im_savefile(char* filename,char * buf,int len);
+FILE* im_getfile(char* filename);
 
 int im_openfile(char* filename);
 int im_savebuff(int fd,char * buf,int len);

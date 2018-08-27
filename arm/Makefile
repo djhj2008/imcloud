@@ -9,6 +9,7 @@ CFLAGS := -g -lm -O2 -Werror -Wall \
   -I../libssl-dev/include \
   -I../libjson/include \
   -I../libhiredis/include \
+  -lm \
   -lcurl \
   -lssl \
   -lcrypto \

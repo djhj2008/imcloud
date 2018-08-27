@@ -36,8 +36,6 @@ enum WAVE_SW_CHANNEL{
 #define ADC_V_CHANNELS 2 //upload server V channel count
 #define ADC_L_CHANNELS 4 //upload server I channel count
 
-#define AC_LINE_FREQUENCY 60 //50Hz or 60Hz
-
 #define PLE_FRAME_MAX 255
 	
 /* =================================== API ======================================= */

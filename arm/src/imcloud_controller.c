@@ -23,6 +23,7 @@ Function List:
 #include <stdlib.h>
 #include <string.h>  
 #include <unistd.h> //sleep include
+#include <sys/time.h>
 
 #include <json-c/json.h>
 
@@ -71,13 +72,18 @@ int CloudAccessKeyHandle(char * buf){
 	json_object_object_get_ex(infor_object, IMCLOUD_ACCESSKEY_TITLE,&status_object);     
 	strcpy(status,json_object_get_string(status_object));
 	
-	if(strcmp(status,IMCLOUD_ACCESSKEY_RESULT)==0){
+	if(strcmp(status,IMCLOUD_ACCESSKEY_STATUS_OK)==0){
 		struct json_object *result_object = NULL;
 		json_object_object_get_ex(infor_object, IMCLOUD_ACCESSKEY_CONTENT,&result_object);        
 		strcpy(key,json_object_get_string(result_object));
 		global_setAccesskey(key);
 		json_object_put(result_object);//free
 		ret = 0;
+	}else{
+		struct json_object *result_object = NULL;
+		json_object_object_get_ex(infor_object, IMCLOUD_SERVER_MESSAGE,&result_object);        
+		imlogE("%s",json_object_get_string(result_object));
+		json_object_put(result_object);//free
 	}
 	
 	json_object_put(status_object);//free
@@ -137,6 +143,9 @@ int GenerateInfoData(char * postdata)
 {
 	struct json_object *infor_object = NULL;
 	infor_object = json_object_new_object();
+	struct timeval tv;
+    gettimeofday(&tv,NULL);
+    
 	if (NULL == infor_object)
 	{
 		imlogE("ImCloudInfo new json object failed.\n");
@@ -152,17 +161,24 @@ int GenerateInfoData(char * postdata)
         return -1;
     }
     
-    json_object_array_add(array_object, json_object_new_int(256));
-    json_object_array_add(array_object, json_object_new_int(257));
-    json_object_array_add(array_object, json_object_new_int(258));
-    json_object_object_add(infor_object, "array", array_object);
+    //json_object_array_add(array_object, json_object_new_int(256));
+    //json_object_array_add(array_object, json_object_new_int(257));
+    //json_object_array_add(array_object, json_object_new_int(258));
+    //json_object_object_add(infor_object, "array", array_object);
     
-	json_object_object_add(infor_object, "fw_version", json_object_new_int(4097));
-	json_object_object_add(infor_object, "booted_at", json_object_new_int64(1234567890));
-	json_object_object_add(infor_object, "manufacturer", json_object_new_string("xxxx"));
-	json_object_object_add(infor_object, "model_number", json_object_new_int(0));
-	json_object_object_add(infor_object, "hw_version", json_object_new_int(4097));
-	strcpy(postdata,json_object_to_json_string(infor_object));
+    //json_object_object_add(infor_object, "manufacturer", json_object_new_string("Informetis Co.,Ltd."));
+	//json_object_object_add(infor_object, "model_number", json_object_new_string("CM-2/J"));
+	//json_object_object_add(infor_object, "booted_at", json_object_new_int(1521682102));
+	//json_object_object_add(infor_object, "fw_version", json_object_new_int(4865));
+	//json_object_object_add(infor_object, "hw_version", json_object_new_int(4));
+	
+	json_object_object_add(infor_object, "manufacturer", json_object_new_string("INTEL"));
+	json_object_object_add(infor_object, "model_number", json_object_new_string("FM3JP"));
+	json_object_object_add(infor_object, "fw_version", json_object_new_int(4096));
+	json_object_object_add(infor_object, "booted_at", json_object_new_int(tv.tv_sec));
+	json_object_object_add(infor_object, "hw_version", json_object_new_int(4096));
+	//strcpy(postdata,json_object_to_json_string(infor_object));
+	sprintf(postdata,"data=%s",json_object_to_json_string(infor_object));
 	
 	json_object_put(array_object);//free
     json_object_put(infor_object);//free	
@@ -200,7 +216,7 @@ int CloudInfoHandle(char * buf){
 	json_object_object_get_ex(infor_object, IMCLOUD_INFO_TITLE,&status_object);     
 	strcpy(status,json_object_get_string(status_object));
 	
-	if(strcmp(status,IMCLOUD_ACCESSKEY_RESULT)==0){
+	if(strcmp(status,IMCLOUD_INFO_RESULT)==0){
 		struct json_object *i_channels_object = NULL;
 		struct json_object *v_channels_object = NULL;
 		global_resetCHFlag();
@@ -220,7 +236,13 @@ int CloudInfoHandle(char * buf){
 		json_object_put(i_channels_object);//free
 		json_object_put(v_channels_object);//free
 		ret = 0;
+	}else{
+		struct json_object *result_object = NULL;
+		json_object_object_get_ex(infor_object, IMCLOUD_SERVER_MESSAGE,&result_object);        
+		imlogE("%s",json_object_get_string(result_object));
+		json_object_put(result_object);//free
 	}
+	
 	
 	json_object_put(status_object);//free
 	json_object_put(infor_object);//free
@@ -253,6 +275,11 @@ int CloudDataHandle(char * buf){
 	
 	infor_object = json_tokener_parse(buf);
 	imlogV("CloudDataHandle RECV:%s\n",buf);
+	
+	if(infor_object==NULL){
+		imlogE("Error Server data.");
+		return -1;
+	}
 	
 	json_object_object_get_ex(infor_object, IMCLOUD_DATA_TITLE,&request_object);        
 	strcpy(req,json_object_get_string(request_object));

@@ -32,7 +32,7 @@ int led_ctrl_ADC7606_ct_direction(int index,int on_off)
 		return 0;
 	}
 
-	imlogV("LED %d : %d",index,on_off);
+	//imlogV("LED %d : %d",index,on_off);
 	
 	adc_led[index]=on_off;
 	sprintf(path, "%s%d/%s", SYS_WIFI_SIGNAL_LED, index+ADC7606_SKU_LED_S, "brightness");

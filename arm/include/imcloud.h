@@ -7,7 +7,9 @@
 #ifndef __IMCLOUD_H__
 #define __IMCLOUD_H__
 
-#define ACCESS_KEY_SIZE 64
+
+#define EEPROM_WRITE_OFFSET 	2
+#define ACCESS_KEY_SIZE 		64
 
 #define MAC_LEN 16
 #define HTTP_RETRY_NONE 0

@@ -763,6 +763,8 @@ int main(int arg, char *arc[])
 	thpool = thpool_init(10);
 	char *access_key=global_getAccesskey();
 	
+	imlogV("MAIN:VERAION:%d",global_getFWversion());
+	
     /* init redis */
     if (redis_init()) {
 		sleep(10);
@@ -789,7 +791,7 @@ int main(int arg, char *arc[])
 		goto Finish;
 	}
 	
-	//adc_calibration();
+	adc_calibration();
 	
 	ret = openInputDev(ADC_DEV_NAME);
 	if(ret){

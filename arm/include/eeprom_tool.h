@@ -54,7 +54,7 @@ typedef long long               s64;
 #define IGAIN_ADDR 			0x3e
 #define IGAIN_SIZE			2	
 
-#define ACCESS_KEY_ADDR		0x1a1 
+#define ACCESS_KEY_ADDR		0x161
 
 #define AC_LINE_FREQUENCY_50 50 //50Hz or 60Hz
 #define AC_LINE_FREQUENCY_60 60 //50Hz or 60Hz

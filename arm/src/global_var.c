@@ -76,6 +76,18 @@ float I_threshol = 0.0;
 
 static uint8_t global_adc_frq;
 
+uint16_t global_getFWversion()
+{
+	uint16_t major=(FW_VERSION_MAJOR<<12)&0xffff;
+	uint16_t minor=(FW_VERSION_MINOR<<8)&0xffff;
+	uint16_t revision=(FW_VERSION_REVISION<<4)&0xffff;
+	uint16_t host=FW_VERSION_HOST&0xffff;
+	
+	return major|minor|revision|host;
+}
+
+
+
 void global_setAdcFrq(uint8_t hz)
 {
 	global_adc_frq=hz;

@@ -232,6 +232,19 @@ int CloudInfoHandle(char * buf){
 			json_object_put(i_channels_object);//free
 			json_object_put(v_channels_object);//free
 			ret = STATUS_OK;
+		}else{
+			struct json_object *result_object = NULL;
+			char code[64]={0x0};
+			json_object_object_get_ex(infor_object, IMCLOUD_SERVER_CODE,&result_object); 
+			strcpy(code,json_object_get_string(result_object));     
+			imlogE("%s",code);
+			if(strcmp(code,SERVER_INVALID_KEY)==0){
+				ret = INVALID_KEY;
+			}
+			
+			json_object_object_get_ex(infor_object, IMCLOUD_SERVER_MESSAGE,&result_object);        
+			imlogE("%s",json_object_get_string(result_object));
+			json_object_put(result_object);//free	
 		}
 	}
 	else{
@@ -333,8 +346,8 @@ int CloudDataHandle(char * buf){
 			imlogV("CMD:FW Update.\n");
 			
 		}else if(cmd==IMCLOUD_CMD_REBOOT){
-			char *exec_argv[] = { "imcloud", "0", 0 };
-			execv("/proc/self/exe", exec_argv);
+			char *exec_argv[] = { "restart", "imcloud", 0 };
+			execv("/bin/systemctl", exec_argv);
 			imlogV("CMD:Reboot.\n");
 		}else if(cmd==IMCLOUD_CMD_INTERVAL_CHANGE){
 			struct json_object *result_object = NULL; 

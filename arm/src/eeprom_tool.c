@@ -63,6 +63,7 @@ int read_data(u32 offset, u8 *buf, int len){
 			if(ret < 0){
 				printf("%s 1 error offset: 0x%x, ret = %d\n",__FUNCTION__, offset + o_len, ret);
 				i2c_close_exit();
+				return -1;
 			}
 			c_len -= PAGE_SIZE;
 			i++;
@@ -71,6 +72,7 @@ int read_data(u32 offset, u8 *buf, int len){
 			if(ret < 0){
 				printf("%s 2 error offset: 0x%x, ret = %d\n",__FUNCTION__, offset + o_len, ret);
 				i2c_close_exit();
+				return -1;
 			}
 #if 0
 			hexdump(buf, len);
@@ -91,38 +93,46 @@ int read_data(u32 offset, u8 *buf, int len){
 */
 int write_data(u32 offset, u8 *buf, int len){
 	int ret;
-	int c_len = len;
-	int o_len = 0;
-	int i = 0;
+	int f_len = 0;        //first length, Length of the current offset before the page node.
+	int s_len = 0;        //secondary length, Length of the current offset after the page node.
+	int offset_len = 0;   //Length calculation offset.
+	int w_len = 0;	      //Current write length.
+	//multiple offset addr,Calculate the most recent page node in the current offset.
+	u32 m_offset = ((offset / PAGE_SIZE) + ((offset % PAGE_SIZE) ? 1: 0)) * PAGE_SIZE;
 
-	imlogV("write_data:offset=%d buf=%s len=%d",offset,buf,len);
-	
-	while(c_len > 0){
+	f_len = m_offset - offset;
+	f_len = f_len <= 0 ? 0 : f_len;
+	s_len = (len <= f_len) ? 0 : (len - f_len);
 
-		o_len = PAGE_SIZE * i;
-		//printf("%s c_len = %d, o_len = %d\n",__FUNCTION__, c_len, o_len);
-		if(c_len > PAGE_SIZE){
-			ret = i2c_write_data(offset + o_len, buf + o_len, PAGE_SIZE);
-			if(ret < 0){
-				printf("%s 1 error offset: 0x%x, ret = %d\n",__FUNCTION__, offset + o_len, ret);
-				i2c_close_exit();
+	while(f_len || s_len){
+
+			if(f_len){
+				w_len = f_len;
+				f_len = 0;
+			}else{
+				offset_len += w_len;
+				if(s_len > PAGE_SIZE){
+					w_len = PAGE_SIZE;
+					s_len -= PAGE_SIZE;
+				}else{
+					w_len = s_len;
+					s_len = 0;
+				}
 			}
-			c_len -= PAGE_SIZE;
-			i++;
-		}else{
-			ret = i2c_write_data(offset + o_len, buf + o_len, c_len);
+			printf("%s offset: 0x%x, offset_len = %d, w_len = %d\n",__FUNCTION__, offset, offset_len, w_len);
+			ret = i2c_write_data(offset + offset_len, buf + offset_len, w_len);
 			if(ret < 0){
-				printf("%s 2 error offset: 0x%x, ret = %d\n",__FUNCTION__, offset + o_len, ret);
+				printf("%s error offset: 0x%x, ret = %d\n",__FUNCTION__, offset, ret);
 				i2c_close_exit();
+				return -1;
 			}
-			printf("write success!\n");
 			usleep(10000);
-			return 0;
-		}
-		usleep(10000);
 	}
+
+	printf("write success!\n");
 	return 0;
 }
+
 
 void i2c_path(char* argv){
 
@@ -252,7 +262,7 @@ int i2c_write_data(u32 offset, u8 *buf, int len)
 
 		if ((ret = __i2c_send(fd, &data)) < 0)
 			goto errexit0;
-	}else if(c_max_offset <= BLOCK2_MAX){
+		}else if(c_max_offset <= BLOCK2_MAX){
 
 
 		if(offset > BLOCK_MAX){
@@ -421,9 +431,11 @@ unsigned int U8StoU16(unsigned char* buffer){
 
 void eeprom_set_accesskey(char * access_key)
 {
+	u8 buf[ACCESS_KEY_SIZE+EEPROM_WRITE_OFFSET];
 	i2c_path("/dev/i2c-0");
 	imlogV("eeprom_set_accesskey :%s",access_key);
-	write_data(ACCESS_KEY_ADDR, (u8 *)access_key, ACCESS_KEY_SIZE);
+	memcpy(buf+EEPROM_WRITE_OFFSET,access_key,ACCESS_KEY_SIZE);
+	write_data(ACCESS_KEY_ADDR, (u8 *)buf, ACCESS_KEY_SIZE);
 	i2c_close_exit();;
 }
 
@@ -440,7 +452,7 @@ int im_init_e2prom_data()
 	uint16_t igain=0;
 	uint16_t vgain=0; 
 	uint8_t frq=0;
-	int ret = -1;
+	int ret = 0;
 
 	i2c_path("/dev/i2c-0");
 	
@@ -485,10 +497,9 @@ int im_init_e2prom_data()
 	
 	i2c_close_exit();
 
-	if(vgain>1||igain>1){
+	if(vgain==0||igain==0){
 		global_setIgain(0x0190);
 		global_setVgain(0x0582);
-		ret = 0;
 	}
 
 	if(frq==0){

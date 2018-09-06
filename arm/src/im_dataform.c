@@ -325,6 +325,30 @@ int GenerateWaveFile(char * file,int *len ,int * first_time,int ichannels,int vc
 }
 #endif
 
+uint8_t * GenerateBackupWaveform(char * file,int *len ,int * first_time)
+{
+	int fd;
+	struct data_header header_buf;
+	uint8_t *postdata;
+	int file_size;
+	
+	file_size = get_file_size(file);
+	fd = open(file,O_RDWR);
+	if(fd<0){
+		imlogE("file open error.\n");
+		return NULL;
+	}
+	read(fd,&header_buf,sizeof(struct data_header));
+	
+	*first_time = htonl(header_buf.start_time);
+	postdata = (uint8_t *)malloc(file_size);
+	*len = read(fd,postdata,file_size);
+	
+	return postdata;
+	
+}
+
+
 uint8_t * GenerateWaveform(char * file,int *len ,int * first_time,int ichannels,int vchannels,int totals,uint8_t flag)
 {
 	int fd;
@@ -394,8 +418,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,int * first_time,int ichannels,
 	
 	for(i=0;i<ucFramesPerGroup;i++){
 		//imlogV("index = %d rssi = %d w1 = %f w2 = %f \n", i,waveform_t[i].rssi,waveform_t[i].w1,waveform_t[i].w2);
-		//imlogV(" data v=%d l1=%d l2=%d\n",waveform_t[i].data[0],waveform_t[i].data[64],waveform_t[i].data[128]);
-		
+		//imlogV(" data v=%d l1=%d l2=%d\n",waveform_t[i].data[0],waveform_t[i].data[64],waveform_t[i].data[128]);	
 	}
 
 	h_count = WAVE_FORM_HEAD_LEN;

@@ -123,7 +123,7 @@ cd ${basepath}/arm
 make clean
 make
 mkdir imcloud_${IMCLOUD_VERSION}
-cp -r ./imcloud ./libs/ imcloud.conf imcloud.service install.sh ./config/ imcloud_${IMCLOUD_VERSION}
+cp -r ./imcloud ./libs/ imcloud.service install.sh ./config/ imcloud_${IMCLOUD_VERSION}
 tar -cvf ../imcloud_${IMCLOUD_VERSION}.tar ./imcloud_${IMCLOUD_VERSION}
 rm -rf ./imcloud_${IMCLOUD_VERSION}
 echo "End"

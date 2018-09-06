@@ -53,9 +53,10 @@ Function List:
 #include "im_dataform.h"
 #include "imcloud.h"
 #include "global_var.h"
+#include "eeprom_tool.h"
 
 /* get from server.needed other server interface */
-char access_key[128]={0};
+char access_key[ACCESS_KEY_SIZE+1]={0};
 /*wifi Mac ADDR */
 char mac_addr[MAC_LEN+1]= {0x0};
 /*Server URL */
@@ -69,6 +70,10 @@ int next_totals;
 /*Vgain Igain*/
 static uint16_t global_igain;
 static uint16_t global_vgain;
+
+float V_threshol = 0.0;
+float I_threshol = 0.0;
+
 static uint8_t global_adc_frq;
 
 void global_setAdcFrq(uint8_t hz)
@@ -83,8 +88,8 @@ uint8_t gloal_getAdcFrq()
 
 void global_setAccesskey(char *key)
 {
-	memset(access_key,0,128);
-	strcpy(access_key,key);
+	memset(access_key,0,ACCESS_KEY_SIZE+1);
+	memcpy(access_key,key,ACCESS_KEY_SIZE);
 }
 
 char * global_getAccesskey()
@@ -270,5 +275,23 @@ float global_getVgain()
 	return global_vgain;
 }
 
+void global_setIthreshol(float ithreshol)
+{
+	I_threshol=ithreshol;
+}
 
+void global_setVthreshol(float vthreshol)
+{
+	V_threshol=vthreshol;
+}
+
+float global_getIthreshol()
+{
+	return I_threshol;
+}
+
+float global_getVthreshol()
+{
+	return V_threshol;
+}
 

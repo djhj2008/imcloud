@@ -7,6 +7,21 @@
 #define __IMCLOUD_CONTROLLER_H__
 
 #define IMCLOUD_SERVER_MESSAGE		"message"
+#define IMCLOUD_SERVER_CODE			"code"
+
+#define SERVER_BAD_REQUEST			"BadRequest"
+#define SERVER_NOT_ALLOWED			"ActivationNotAllowed"
+#define SERVER_SIG_NOT_MATCH		"SignatureDoesNotMatch"
+#define SERVER_CONNECT_ERROR		"ConnectionError"
+#define SERVER_INVALID_KEY			"InvalidAccessKey"
+
+enum SERVER_CODE_ERROR{
+	STATUS_OK = 0,
+	HTTP_ERROR = -1,
+	NORMAL_ERROR = -2,
+	INVALID_KEY = -3,
+}; 
+
 /*Interface Get Access Key*/
 #define IMCLOUD_ACCESSKEY_TITLE			"status"
 #define IMCLOUD_ACCESSKEY_CONTENT		"access_key"
@@ -34,7 +49,7 @@ enum IMCOULD_V_CHANNELS {
 };
 
 /*Interface Data Upload*/
-#define IMCLOUD_DATA_TITLE			"request"
+#define IMCLOUD_DATA_TITLE					"request"
 
 #define IMCOULD_DATA_NONE_CMD				"none"
 #define IMCOULD_DATA_FW_UPDATE_CMD			"fw_update"

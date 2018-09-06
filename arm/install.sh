@@ -3,7 +3,8 @@ basepath=$(cd `dirname $0`; pwd)
 echo ${basepath}/libs > imcloud.conf
 
 systemctl stop imcloud
-cp config/imcloud.json /etc/
+mkdir /etc/imcloud
+cp config/* /etc/imcloud/
 cp imcloud /usr/local/bin/
 cp imcloud.conf /etc/ld.so.conf.d/
 ldconfig

@@ -7,6 +7,7 @@
  *//** @file im_file.h *//*
  *
  ********************************/
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -163,7 +164,7 @@ int im_savefile(char* filename,char *buf,int len)
 		int sub_len = len;
 		int count = 0;
 		while(sub_len>0){
-			count = write(fd,buf,sub_len);
+			count = write(fd,buf+(len-sub_len),sub_len);
 			imlogV("write file:%s ,count:%d\n",src_path,count);
 			sub_len =sub_len - count;
 		}
@@ -185,6 +186,63 @@ int im_delfile(char *filename){
 	return 0;
 	
 }
+
+int im_save_postdata(uint8_t *postdata,int len)
+{
+	char des_path[MAX_DIRPATH_LEN]={0x0};
+	struct stat file_stat;
+    int ret;
+	char dirpath[MAX_DIRPATH_LEN]={0x0};
+	char file_back[64]={0x0};
+	int fd;
+	
+    //下面语句是建立默认文件夹的路径
+    strcpy(dirpath, SAVE_DIRPATH);//默认的路径为data
+   
+    ret = stat(dirpath, &file_stat);//检查文件夹状态
+    if(ret<0)
+    {
+        if(errno == ENOENT)//是否已经存在该文件夹
+        {
+            ret = mkdir(dirpath, 0775);//创建文件夹
+            imlogE("creat dir :%s \n", dirpath);
+            if(ret < 0)
+            {
+                imlogE("Could not create directory %s \n",
+					dirpath);
+				return EXIT_FAILURE;
+            }
+ 
+        }
+        else
+        {
+            imlogE("bad file path\n");
+            return EXIT_FAILURE;
+        }
+    }
+	
+	get_filename(file_back);
+	
+	sprintf(des_path,"%s/%s.bak",SAVE_DIRPATH,file_back);
+	
+	fd = open(des_path,O_RDWR|O_CREAT|O_APPEND,0644);
+    if(fd>0){
+		int sub_len = len;
+		int count = 0;
+		while(sub_len>0){
+			count = write(fd,postdata+(len-sub_len),sub_len);
+			imlogV("write file:%s ,count:%d\n",des_path,count);
+			sub_len =sub_len - count;
+			ret = 0;
+		}
+	}
+	
+	if(ret == 0 ){
+		im_redis_backup_push(file_back);
+	}
+	return ret;
+}
+
 
 int im_backfile(char* filename)
 {

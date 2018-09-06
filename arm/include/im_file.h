@@ -18,6 +18,7 @@
 int im_scanDir() ;
 int im_copyfile(char const *src_path, char const *des_path);
 int im_backfile(char* filename);
+int im_save_postdata(uint8_t *postdata,int len);
 int im_savefile(char* filename,char * buf,int len);
 FILE* im_getfile(char* filename);
 

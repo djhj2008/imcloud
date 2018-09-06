@@ -59,6 +59,7 @@ struct data_header{
 
 #pragma pack()
 /* =================================== API ======================================= */
+uint8_t * GenerateBackupWaveform(char * file,int *len ,int * first_time);
 uint8_t * GenerateWaveform(char * file,int *len ,int * first_time,int ichannels,int vchannels,int totals,uint8_t flag);
 ple_uint8_t* ple_decode(struct waveform *waveform_t,
 									int sub_index,

@@ -34,6 +34,7 @@ Function List:
 #include <linux/rtc.h>
 #include <time.h>
 #include <getopt.h>
+#include <math.h>
 
 #include <json-c/json.h>
 
@@ -50,12 +51,15 @@ Function List:
 #include "im_hiredis.h"
 #include "eeprom_tool.h"
 #include "led_tool.h"
+#include "data_config.h"
 
 /*Global wave cache data for uploading info @im_dataform.h */
 struct waveform global_waveform[FRAMES_GROUP_MAX];
 /*Global Thread pool info @thpool.h */
 threadpool thpool;
-
+int imcloud_status = IMCOULD_ACTIVATE;
+int adc_status = ADC_IDLE;
+int key_status = KEY_INVALID;
 
 /*************************************************
 Function: ImCloudData
@@ -84,7 +88,7 @@ int ImCloudData(uint8_t * data,int first_time,int len,int try)
 {
 	char buffer[HTTP_RECV_BUF_MAX] = {0x0};
 	char chunkstr[HTTP_CHUNK_HEAD_LEN]= {0x0};
-	int ret = -1;
+	int ret = HTTP_ERROR;
 	int retry = try;
 	char *mac = global_getMac();
 	char *key = global_getAccesskey();
@@ -121,8 +125,8 @@ int ImCloudData(uint8_t * data,int first_time,int len,int try)
 	
 	if(cmd == IMCLOUD_CMD_FW_UPDATE){
 		//TODO down firmware
-	}else if(cmd == -1){
-		ret = -1;
+	}else if(cmd < 0){
+		ret = cmd;
 	}
 	
 	imlogV("ImCloudData end.\n");
@@ -154,7 +158,7 @@ int ImCloudInfo()
 	char buffer[HTTP_RECV_BUF_MAX] = {0x0};
 	char chunkstr[HTTP_CHUNK_HEAD_LEN]= {0x0};
 	char postdata[HTTP_NORMAL_POST_BUF_MAX] = {0x0};
-	int ret = -1;
+	int ret = HTTP_ERROR;
 	int retry = HTTP_RETRY_MAX;
 	char *mac = global_getMac();
 	char *key = global_getAccesskey();
@@ -216,7 +220,7 @@ int ImCloudAccessKey()
 	char buffer[HTTP_RECV_BUF_MAX] = {0x0};
 	unsigned char Signature[HTTP_SIGNATURE_LEN]= {0x0};
 	char chunkstr[HTTP_CHUNK_HEAD_LEN]= {0x0};
-	int ret = -1;
+	int ret = HTTP_ERROR;
 	int retry = HTTP_RETRY_MAX;
 	char *mac = global_getMac();
 	char *url = global_getUrl(ICLOUD_URL_ACTIVATE);
@@ -300,10 +304,9 @@ Table Updated: NULL
 Input:
 * @param NULL
 Output: 
-* @return 0 	get data success
-* @return -1 	device error
+* @return NULL
 *************************************************/
-int sysInputScan(void)  
+void *sysInputScan(void *arg)
 {  
     int l_ret = -1;  
     int i = 0;  
@@ -317,6 +320,7 @@ int sysInputScan(void)
     struct ping_buffer_data ping_data;
     struct waveform waveform_t[FRAMES_GROUP_MAX];
 	float w_sum[ADC_L_CHANNELS] = {0x0};
+	float i_sum[ADC_L_CHANNELS] = {0x0};
 	float v_sum=0;
 	float ch_adc=0;
     char devName[128];
@@ -326,7 +330,15 @@ int sysInputScan(void)
 	uint16_t igain = global_getIgain();
 	float vgain_f = short2float(vgain);
 	float igain_f = short2float(igain);
+	float V_threshol = global_getVthreshol();
+	float I_threshol = global_getIthreshol();
 
+	if(adc_status!=ADC_START){
+		return NULL;
+	}
+
+	adc_status = ADC_RUNNING;
+	
     imlogV("enter sysInputScan.\n");
     
     imlogV("vgain=%f,igain=%f\n",vgain_f,igain_f);
@@ -339,13 +351,15 @@ int sysInputScan(void)
     
     if(dev_fd <= 0)
     {  
+		adc_status = ADC_IDLE;
         imlogE("adc7606 open devName : %s error\n", devName);  
-        return l_ret;  
+        return NULL;  
     }  
 
     if (ioctl(dev_fd, 1, 1)) {
+		adc_status = ADC_IDLE;
         imlogE("adc7606 ioctl set enable failed!\n");  
-        return -1;
+        return NULL;
     }
 
     while(1)  
@@ -355,6 +369,8 @@ int sysInputScan(void)
           
         if(l_ret)  
         {
+			adc_status = ADC_REV_DATA;
+			
 			waveform_t[index].time_stamp=(uint32_t)ping_data.time_stamp;
 			if(index==0){
 				imlogV("start time stamp: %d \n", waveform_t[index].time_stamp);
@@ -403,13 +419,17 @@ int sysInputScan(void)
 				vc = waveform_t[index].data[WAVE_V1_CHANNEL*SAMPLES_FRAME+sample]*vgain_f;
 				for(ch=WAVE_L1_CHANNEL;ch<=WAVE_L4_CHANNEL;ch++){
 					ch_adc = waveform_t[index].data[ch*SAMPLES_FRAME+sample]*igain_f;
+					i_sum[ch] += fabs(ch_adc);
 					w_sum[ch] += vc*ch_adc;
 				}
-				v_sum+=vc;
+				v_sum+=fabs(vc);
 			}
 			
 			for(ch=WAVE_L1_CHANNEL;ch<=WAVE_L4_CHANNEL;ch++){
-				if(w_sum[ch]/64 < LED_ADC_DIRECTION_POWER){
+				if((v_sum/SAMPLES_FRAME>=V_threshol)
+						&&(i_sum[ch]>=I_threshol)
+						&&(w_sum[ch]/SAMPLES_FRAME < LED_ADC_DIRECTION_POWER)
+				){
 					led_ctrl_ADC7606_ct_direction(ch,ADC7606_LED_RED);
 				}else{
 					led_ctrl_ADC7606_ct_direction(ch,ADC7606_LED_BLUE);
@@ -423,7 +443,6 @@ int sysInputScan(void)
 			
 			waveform_t[index].rssi=get_wifi_info();
 			
-			
 			totals = global_getTotals();
 			n_totals = global_getNextTotals();
 			imlogV("global_totals = %d next_totals =%d rssi = %d v=%f w1 = %f w2 = %f w3 = %f w4 = %f\n",totals, n_totals,waveform_t[index].rssi,v_sum/SAMPLES_FRAME,waveform_t[index].w1,waveform_t[index].w2,waveform_t[index].w3,waveform_t[index].w4);
@@ -435,7 +454,7 @@ int sysInputScan(void)
 				//imlogV("wave_size:%d,otherform_t:%d \n",sizeof(waveform_t),sizeof(otherform_t));
 				memcpy(global_waveform,waveform_t,sizeof(struct waveform)*totals);
 				memset(waveform_t,0,sizeof(struct waveform)*FRAMES_GROUP_MAX);
-				thpool_add_work(thpool, (void*)task, NULL); 
+				thpool_add_work(thpool, (void*)senddata, NULL); 
 				index = 0;
 
 			}else if(index > totals){
@@ -443,26 +462,27 @@ int sysInputScan(void)
 				imlogV("remaining:%d \n",remaining);
 				memcpy(global_waveform,waveform_t,sizeof(struct waveform)*totals);
 				memcpy(waveform_t,&waveform_t[totals],sizeof(struct waveform)*remaining);
-				thpool_add_work(thpool, (void*)task, NULL);
+				thpool_add_work(thpool, (void*)senddata, NULL);
 				index -= totals;
 			}
 		}
   
     }  
-
+	adc_status = ADC_IDLE;
+	
     if (ioctl(dev_fd, 1, 0)) {
         imlogE("adc7606 ioctl set disable failed!\n");  
-        return -1;
+        return NULL;
     }
-    close(dev_fd);  
+    close(dev_fd); 
       
-    return l_ret;  
+    return NULL;  
       
 }  
 
 
 /*************************************************
-Function: task
+Function: senddata
 Description: Uploading data thread fuction 
 Calls: 
 * global_getTotals 
@@ -482,7 +502,7 @@ Input:
 Output: 
 * @return NULL 	
 *************************************************/
-void *task(void *arg)
+void *senddata(void *arg)
 {
 	int fd;
 	uint8_t *postdata = NULL;
@@ -493,9 +513,8 @@ void *task(void *arg)
 	int vcount = global_getVchannelsCount();
 	char filename[CONFIG_FILENAME_LEN]={0x0};
 	char filepath[CONFIG_FILEPATH_LEN]={0x0};
-	int backup_len = 0;
-	int i=0;
 	int first_time=0;
+	int ret;
 	
 	get_filename(filename);
 	
@@ -514,9 +533,15 @@ void *task(void *arg)
 	}
 	im_close(fd);
 	
+	sprintf(filepath,"%s/%s",DEFAULT_DIRPATH,filename);
+	if(key_status == KEY_INVALID){
+		im_backfile(filepath);
+		imlogE("senddata KEY_INVALID.\n");
+		return NULL;
+	}
+	
+	/*
 	backup_len = im_redis_get_backup_len();
-	
-	
 	if(backup_len>0){
 		for(i=0;i<backup_len;i++){
 			char name[CONFIG_FILENAME_LEN]={0x0};
@@ -527,15 +552,19 @@ void *task(void *arg)
 			sprintf(file,"%s/%s.bak",SAVE_DIRPATH,name);
 			imlogE("backup file:%s \n",file);
 			postdata = GenerateWaveform(file,&len,&first_time,icount,vcount,totals,flag);
-			
 			if(postdata!=NULL){
 				imlogV("post len = %d \n",len);
 				imlogV("post first_time = %d \n",first_time);
-				if(ImCloudData(postdata,first_time,len,HTTP_RETRY_NONE)==0){
+				ret = ImCloudData(postdata,first_time,len,HTTP_RETRY_MAX);
+				if(ret==STATUS_OK){
 					im_delfile(file);
 					im_redis_pop_head();
 					imlogE("ImCloud Send Backup OK.\n");
 				}else{
+					if(ret == INVALID_KEY){
+						key_status = KEY_INVALID;
+						imcloud_status = IMCOULD_ACTIVATE;
+					}
 					imlogE("ImCloud Send Backup Error.\n");
 				}
 				free(postdata);
@@ -544,12 +573,11 @@ void *task(void *arg)
 			}
 		}
 	}
+	*/
 	
 	len = 0;
-	sprintf(filepath,"%s/%s",DEFAULT_DIRPATH,filename);
 	postdata = GenerateWaveform(filepath,&len,&first_time,icount,vcount,totals,flag);
 	if(postdata!=NULL){
-		//im_delfile(filepath);
 		imlogV("post len = %d \n",len);
 	}else{
 		imlogE("postdata NULL \n");
@@ -557,39 +585,65 @@ void *task(void *arg)
 	}
 	
 	//sprintf(filepath,"%s/%d.bin",DEFAULT_DIRPATH,first_time);
-	if(ImCloudData(postdata,first_time,len,HTTP_RETRY_MAX)==0){
-		im_delfile(filepath);
-	}else{
-		imlogE("ImCloud Data Error.\n");
-		im_backfile(filepath); 
-	}
-	/*
-	len = 0;
-	sprintf(filepath,"%s/%s",DEFAULT_DIRPATH,filename);
-	int result = GenerateWaveFile(filepath,&len,&first_time,icount,vcount,totals,flag);
-	if(result==0){
-		im_delfile(filepath);
-		imlogV("post len = %d \n",len);
-	}else{
-		imlogE("postdata NULL \n");
-		return NULL;
-	}
 	
-	//im_savefile("upload.bin",(char * )postdata,len);
-	sprintf(filepath,"%s/%d.bin",DEFAULT_DIRPATH,first_time);
-	if(ImCloudData(postdata,first_time,len,HTTP_RETRY_MAX)==0){
-		//im_delfile(filepath);
+	ret = ImCloudData(postdata,first_time,len,HTTP_RETRY_MAX);
+	if(ret==STATUS_OK){
+		im_delfile(filepath);
 	}else{
+		key_status = KEY_INVALID;
+		imcloud_status = IMCOULD_ACTIVATE;
 		imlogE("ImCloud Data Error.\n");
-		im_backfile(filepath); 
+		im_save_postdata(postdata,len);
+		//im_backfile(filepath); 
 	}
-	*/
+
 	im_redis_backup_dump();
 	free(postdata);
 
 	return NULL;
 }
 
+void *resenddata(void *arg)
+{
+	int backup_len = 0;
+	int i=0;
+	uint8_t *postdata = NULL;
+	int len;
+	int first_time=0;
+	int ret = 0;
+	
+	backup_len = im_redis_get_backup_len();
+	if(backup_len>0){
+		for(i=0;i<backup_len;i++){
+			char name[CONFIG_FILENAME_LEN]={0x0};
+			char file[CONFIG_FILEPATH_LEN]={0x0};
+			
+			len = 0;
+			im_redis_get_list_head(name);
+			sprintf(file,"%s/%s.bak",SAVE_DIRPATH,name);
+			imlogE("backup file:%s \n",file);
+			postdata = GenerateBackupWaveform(file,&len,&first_time);
+			if(postdata!=NULL){
+				imlogV("post len = %d \n",len);
+				imlogV("post first_time = %d \n",first_time);
+				ret = ImCloudData(postdata,first_time,len,HTTP_RETRY_MAX);
+				if(ret==STATUS_OK){
+					im_delfile(file);
+					im_redis_pop_head();
+					imlogE("ImCloud RESend Backup OK.\n");
+				}else{
+					if(ret == INVALID_KEY){
+						key_status = KEY_INVALID;
+						imcloud_status = IMCOULD_ACTIVATE;
+					}
+					imlogE("ImCloud RESend Backup Error.\n");
+				}
+				free(postdata);
+			}
+		}
+	}
+	return NULL;
+}
 /*************************************************
 Function: GetAcessKey
 Description: @ImCloudAccessKey
@@ -609,10 +663,10 @@ int GetAcessKey(){
 	imlogV("GetAcessKey().\n");
 	
 	ret = ImCloudAccessKey();
-	if(ret < 0){
-		imlogE("Error Get Access Key.");
+	if(ret<0){
+		imlogE("Error Get Access Key");
 	}
-	
+
 	return ret;
 }
 
@@ -633,12 +687,13 @@ Output:
 int GetCHInfo()
 {
 	int ret = -1;
+
 	imlogV("GetInfo().\n");
 	ret = ImCloudInfo();
-	if(ret < 0){
+	if(ret<0){
 		imlogE("Error GetInfo.");
 	}
-	
+
 	return ret;
 }
 
@@ -660,95 +715,19 @@ Output:
 *************************************************/
 int getConfig()
 {
-	int ret =-1;
-	char * buf = NULL;
-/*	
-	int fd;
-	int count;
-	int size;
-	struct json_object *result_object = NULL;
-	struct json_object *infor_object = NULL;
-	int totals,debug_on;
-	int i=0;
-	
-	size = get_file_size(CONFIG_FILE_PATH);
-	
-	if(size>0){
-		fd = open(CONFIG_FILE_PATH,O_RDWR);
-		if(fd<0){
-			imlogE("Config open error use default.\n");
-		}
-		buf = (char *)malloc(size);
-		
-		count = read(fd,buf,size);
-		
-		if(count<0){
-			imlogE("file read error.\n");
-		}
-		close(fd);
-		
-		infor_object = json_tokener_parse(buf);
-		imlogV("Config:%s\n",buf);
-		json_object_object_get_ex(infor_object, "interval",&result_object);
-		totals = json_object_get_int(result_object);
-		json_object_put(result_object);//free
-		
-		json_object_object_get_ex(infor_object, "debug",&result_object);
-		debug_on = json_object_get_int(result_object);
-		json_object_put(result_object);//free
-		setDebugOnOff(debug_on);
-		
-		
-		if(totals >=GLOBAL_TOTALS_MIN && totals <= GLOBAL_TOTALS_MAX){
-			global_setTotals(totals);
-			global_startNextTotals();
-		}else{
-			global_setTotals(GLOBAL_TOTALS_DEFAULT);
-			global_startNextTotals();
-		}
-		
-		json_object_object_get_ex(infor_object, "imcloud_activate",&result_object);
-		global_setUrl(json_object_get_string(result_object),ICLOUD_URL_ACTIVATE);
-
-		json_object_object_get_ex(infor_object, "imcloud_info",&result_object);
-		global_setUrl(json_object_get_string(result_object),ICLOUD_URL_INFO);
-		
-		json_object_object_get_ex(infor_object, "imcloud_data",&result_object);
-		global_setUrl(json_object_get_string(result_object),ICLOUD_URL_DATA);
-		
-		json_object_object_get_ex(infor_object, "imcloud_fw",&result_object);
-		global_setUrl(json_object_get_string(result_object),ICLOUD_URL_FW);
-		
-		json_object_put(infor_object);//free
-		
-		for(i=0;i<ICLOUD_URL_MAX;i++){
-			if(strlen(global_getUrl(i))==0){
-				ret = -1;
-				break;
-			}
-			ret = 0;
-		}
-	}
-*/
-	//if(ret<0){
-		global_setTotals(GLOBAL_TOTALS_DEFAULT);
-		global_startNextTotals();
-		global_setUrl(ICLOUD_URL_ACTIVATE);
-		global_setUrl(ICLOUD_URL_INFO);
-		global_setUrl(ICLOUD_URL_DATA);
-		global_setUrl(ICLOUD_URL_FW);
-		ret = 0;
-	//}
+	global_setTotals(GLOBAL_TOTALS_DEFAULT);
+	global_startNextTotals();
+	global_setUrl(ICLOUD_URL_ACTIVATE);
+	global_setUrl(ICLOUD_URL_INFO);
+	global_setUrl(ICLOUD_URL_DATA);
+	global_setUrl(ICLOUD_URL_FW);
 
 	imlogV("URL = %s\n",global_getUrl(ICLOUD_URL_ACTIVATE));
 	imlogV("URL = %s\n",global_getUrl(ICLOUD_URL_INFO));
 	imlogV("URL = %s\n",global_getUrl(ICLOUD_URL_DATA));
 	imlogV("URL = %s\n",global_getUrl(ICLOUD_URL_FW));
 	
-	if(buf != NULL){
-		free(buf);
-	}
-	return ret;
+	return 0;
 }
 
 
@@ -781,8 +760,8 @@ int main(int arg, char *arc[])
 {
 	int ret = 0;
 	char mac[MAC_LEN+1]= {0x0};
-
 	thpool = thpool_init(10);
+	char *access_key=global_getAccesskey();
 	
     /* init redis */
     if (redis_init()) {
@@ -810,15 +789,7 @@ int main(int arg, char *arc[])
 		goto Finish;
 	}
 	
-	if(GetAcessKey()<0){
-		imlogE("GetAcessKey\n"); 
-		goto Finish;
-	}
-	
-	if(GetCHInfo()<0){
-		imlogE("GetInfo\n"); 
-		goto Finish;
-	}
+	//adc_calibration();
 	
 	ret = openInputDev(ADC_DEV_NAME);
 	if(ret){
@@ -833,13 +804,44 @@ int main(int arg, char *arc[])
 		goto Finish;
 	}
 
-	while(1)
-	{  
-		ret = sysInputScan(); 
-		if(ret <=0)
-			break;
+	imlogE("access_key:%x",access_key[0]);
+	if(access_key[0]!=0){
+		key_status = KEY_STATUS_OK;
+		imcloud_status = IMCOULD_INFO;
+	}else{
+		imcloud_status = IMCOULD_ACTIVATE;
 	}
+	adc_status = ADC_IDLE;
 
+	while(1)
+	{
+		if(imcloud_status==IMCOULD_ACTIVATE){
+			if(GetAcessKey()<STATUS_OK){
+				imlogE("GetAcessKey\n"); 
+				//sleep(delay);
+			}else{
+				key_status = KEY_STATUS_OK;
+				imcloud_status = IMCOULD_INFO;
+			}
+		}else if(imcloud_status==IMCOULD_INFO){
+			int ret = GetCHInfo();
+			if(ret == STATUS_OK){
+				imcloud_status = IMCOULD_DATA;
+				//sleep(delay);
+			}else if(ret == INVALID_KEY){
+				imcloud_status = IMCOULD_ACTIVATE;
+				//sleep(delay);
+			}else{
+				imlogE("GetCHInfo\n");
+				//sleep(delay);
+			}
+		}else if(imcloud_status==IMCOULD_DATA){
+			if(adc_status==ADC_IDLE){
+				adc_status = ADC_START;
+				thpool_add_work(thpool, (void*)sysInputScan, NULL);
+			}
+		}
+	}
 
 Finish:	
 	redis_free();

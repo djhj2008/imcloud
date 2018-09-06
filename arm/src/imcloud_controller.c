@@ -31,6 +31,7 @@ Function List:
 #include "imcloud.h"
 #include "imcloud_controller.h"
 #include "global_var.h"
+#include "eeprom_tool.h"
 
 /*Data interface calback command*/
 char *imcloud_cmd_t[IMCLOUD_CMD_MAX]={
@@ -40,6 +41,7 @@ char *imcloud_cmd_t[IMCLOUD_CMD_MAX]={
 	IMCOULD_DATA_INTERVAL_CMD,
 	IMCOULD_DATA_LOGLEVEL_CMD,
 	IMCOULD_DATA_WAVEUPLOAD_CMD,
+	IMCOULD_DATA_SSID_CMD,
 		
 };
 
@@ -64,23 +66,28 @@ int CloudAccessKeyHandle(char * buf){
 	struct json_object *status_object = NULL; 
 	char status[4]={0};
 	char key[128]={0};
-	int ret = -1;
+	int ret = NORMAL_ERROR;
 	
 	infor_object = json_tokener_parse(buf);
-	imlogV("CloudAccessKeyHandle RECV:%s\n",buf);
+	//imlogV("CloudAccessKeyHandle RECV:%s\n",buf);
 	
-	json_object_object_get_ex(infor_object, IMCLOUD_ACCESSKEY_TITLE,&status_object);     
-	strcpy(status,json_object_get_string(status_object));
+	json_object_object_get_ex(infor_object, IMCLOUD_ACCESSKEY_TITLE,&status_object);
 	
-	if(strcmp(status,IMCLOUD_ACCESSKEY_STATUS_OK)==0){
-		struct json_object *result_object = NULL;
-		json_object_object_get_ex(infor_object, IMCLOUD_ACCESSKEY_CONTENT,&result_object);        
-		strcpy(key,json_object_get_string(result_object));
-		global_setAccesskey(key);
-		json_object_put(result_object);//free
-		ret = 0;
+	if(status_object!=NULL){
+		strcpy(status,json_object_get_string(status_object));
+		if(strcmp(status,IMCLOUD_ACCESSKEY_STATUS_OK)==0){
+			struct json_object *result_object = NULL;
+			json_object_object_get_ex(infor_object, IMCLOUD_ACCESSKEY_CONTENT,&result_object);        
+			strcpy(key,json_object_get_string(result_object));
+			global_setAccesskey(key);
+			eeprom_set_accesskey(key);
+			json_object_put(result_object);//free
+			ret = STATUS_OK;
+		}
 	}else{
 		struct json_object *result_object = NULL;
+		json_object_object_get_ex(infor_object, IMCLOUD_SERVER_CODE,&result_object);        
+		imlogE("%s",json_object_get_string(result_object));
 		json_object_object_get_ex(infor_object, IMCLOUD_SERVER_MESSAGE,&result_object);        
 		imlogE("%s",json_object_get_string(result_object));
 		json_object_put(result_object);//free
@@ -161,17 +168,6 @@ int GenerateInfoData(char * postdata)
         return -1;
     }
     
-    //json_object_array_add(array_object, json_object_new_int(256));
-    //json_object_array_add(array_object, json_object_new_int(257));
-    //json_object_array_add(array_object, json_object_new_int(258));
-    //json_object_object_add(infor_object, "array", array_object);
-    
-    //json_object_object_add(infor_object, "manufacturer", json_object_new_string("Informetis Co.,Ltd."));
-	//json_object_object_add(infor_object, "model_number", json_object_new_string("CM-2/J"));
-	//json_object_object_add(infor_object, "booted_at", json_object_new_int(1521682102));
-	//json_object_object_add(infor_object, "fw_version", json_object_new_int(4865));
-	//json_object_object_add(infor_object, "hw_version", json_object_new_int(4));
-	
 	json_object_object_add(infor_object, "manufacturer", json_object_new_string("INTEL"));
 	json_object_object_add(infor_object, "model_number", json_object_new_string("FM3JP"));
 	json_object_object_add(infor_object, "fw_version", json_object_new_int(4096));
@@ -181,7 +177,7 @@ int GenerateInfoData(char * postdata)
 	sprintf(postdata,"data=%s",json_object_to_json_string(infor_object));
 	
 	json_object_put(array_object);//free
-    json_object_put(infor_object);//free	
+    json_object_put(infor_object);//free
 	
 	return 0;
 }
@@ -208,39 +204,50 @@ int CloudInfoHandle(char * buf){
 	struct json_object *infor_object = NULL;
 	struct json_object *status_object = NULL; 
 	char status[4]={0};
-	int ret = -1;
+	int ret = NORMAL_ERROR;
 	
 	infor_object = json_tokener_parse(buf);
-	imlogV("CloudInfoHandle RECV:%s\n",buf);
+	//imlogV("CloudInfoHandle RECV:%s\n",buf);
 	
 	json_object_object_get_ex(infor_object, IMCLOUD_INFO_TITLE,&status_object);     
-	strcpy(status,json_object_get_string(status_object));
-	
-	if(strcmp(status,IMCLOUD_INFO_RESULT)==0){
-		struct json_object *i_channels_object = NULL;
-		struct json_object *v_channels_object = NULL;
-		global_resetCHFlag();
-		
-		json_object_object_get_ex(infor_object, IMCLOUD_INFO_ICH_CONTENT,&i_channels_object);      
-		if(i_channels_object!=NULL){
-			imlogV("%s \n",json_object_get_string(i_channels_object));
-			parseICHStr((char *)json_object_get_string(i_channels_object));
+	if(status_object!=NULL){
+		strcpy(status,json_object_get_string(status_object));
+		if(strcmp(status,IMCLOUD_INFO_RESULT)==0){
+			struct json_object *i_channels_object = NULL;
+			struct json_object *v_channels_object = NULL;
+			global_resetCHFlag();
+			
+			json_object_object_get_ex(infor_object, IMCLOUD_INFO_ICH_CONTENT,&i_channels_object);      
+			if(i_channels_object!=NULL){
+				imlogV("%s \n",json_object_get_string(i_channels_object));
+				parseICHStr((char *)json_object_get_string(i_channels_object));
+			}
+			
+			json_object_object_get_ex(infor_object, IMCLOUD_INFO_VCH_CONTENT,&v_channels_object);
+			if(v_channels_object!=NULL){
+				imlogV("%s \n",json_object_get_string(v_channels_object));
+				parseVCHStr((char *)json_object_get_string(v_channels_object));
+			}
+			
+			json_object_put(i_channels_object);//free
+			json_object_put(v_channels_object);//free
+			ret = STATUS_OK;
 		}
-		
-		json_object_object_get_ex(infor_object, IMCLOUD_INFO_VCH_CONTENT,&v_channels_object);
-		if(v_channels_object!=NULL){
-			imlogV("%s \n",json_object_get_string(v_channels_object));
-			parseVCHStr((char *)json_object_get_string(v_channels_object));
-		}
-		
-		json_object_put(i_channels_object);//free
-		json_object_put(v_channels_object);//free
-		ret = 0;
-	}else{
+	}
+	else{
 		struct json_object *result_object = NULL;
+		char code[64]={0x0};
+		json_object_object_get_ex(infor_object, IMCLOUD_SERVER_CODE,&result_object); 
+		strcpy(code,json_object_get_string(result_object));     
+		imlogE("%s",code);
+		if(strcmp(code,SERVER_INVALID_KEY)==0){
+			ret = INVALID_KEY;
+		}
+		
 		json_object_object_get_ex(infor_object, IMCLOUD_SERVER_MESSAGE,&result_object);        
 		imlogE("%s",json_object_get_string(result_object));
 		json_object_put(result_object);//free
+		
 	}
 	
 	
@@ -274,67 +281,94 @@ int CloudDataHandle(char * buf){
 	int cmd = 0;
 	
 	infor_object = json_tokener_parse(buf);
-	imlogV("CloudDataHandle RECV:%s\n",buf);
+	//imlogV("CloudDataHandle RECV:%s\n",buf);
 	
 	if(infor_object==NULL){
 		imlogE("Error Server data.");
-		return -1;
+		return NORMAL_ERROR;
 	}
 	
-	json_object_object_get_ex(infor_object, IMCLOUD_DATA_TITLE,&request_object);        
-	strcpy(req,json_object_get_string(request_object));
-	imlogV("request:%s\n", req);
-	cmd = CloudGetCMD(req);
-	if(cmd==IMCLOUD_CMD_NONE){
-		imlogV("CMD:None.\n");
-	}else if(cmd==IMCLOUD_CMD_FW_UPDATE){
-		struct json_object *result_object = NULL; 
-		int version;
-		char domain[128]={0x0};
-		char tmp[16]={0x0};
-		//int checksum=0;
-		int size=0;
-		
-		json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_VERSION_CONTENT,&result_object);	
-		version = json_object_get_int(result_object);
-		json_object_put(result_object);//free
-		imlogV("fw version=%d",version);
-		
-		json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_DOMAIN_CONTENT,&result_object);	
-		strcpy(domain,json_object_get_string(request_object));
-		json_object_put(result_object);//free
-		
-		json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_CHECKSUM_CONTENT,&result_object);	
-		strcpy(tmp,json_object_get_string(request_object));
-		json_object_put(result_object);//free
+	json_object_object_get_ex(infor_object, IMCLOUD_DATA_TITLE,&request_object);   
+	if(request_object!=NULL){
+		strcpy(req,json_object_get_string(request_object));
+		imlogV("request:%s", req);
+		cmd = CloudGetCMD(req);
+		if(cmd==IMCLOUD_CMD_NONE){
+			imlogV("CMD:None.");
+		}else if(cmd==IMCLOUD_CMD_FW_UPDATE){
+			struct json_object *result_object = NULL; 
+			int version;
+			char domain[128]={0x0};
+			char tmp[16]={0x0};
+			//int checksum=0;
+			int size=0;
 			
-		json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_SIZE_CONTENT,&result_object);	
-		size = json_object_get_int(result_object);
-		json_object_put(result_object);//free 
-		imlogV("fw size=%d",size);
-		
-		imlogV("CMD:FW Update.\n");
-		
-	}else if(cmd==IMCLOUD_CMD_REBOOT){
-		char *exec_argv[] = { "imcloud", "0", 0 };
-		execv("/proc/self/exe", exec_argv);
-		imlogV("CMD:Reboot.\n");
-	}else if(cmd==IMCLOUD_CMD_INTERVAL_CHANGE){
-		struct json_object *result_object = NULL; 
-		int totals = 0;
-		json_object_object_get_ex(infor_object, IMCLOUD_DATA_INTERVAL_CONTENT,&result_object);
-		totals = json_object_get_int(result_object);
-		imlogV("interval:%d\n", totals);
-		global_setTotals(totals);
-		json_object_put(result_object);//free
-	}else if(cmd==IMCLOUD_CMD_LOGLEVEL_CHANGE){
-		imlogV("CMD:Loglevel.\n");
-	}else if(cmd==IMCLOUD_CMD_WAVEUPLOAD_CHANGE){
-		imlogV("CMD:Wave Upload.\n");
-	}else if(cmd==IMCLOUD_CMD_SSID_CHANGE){
-		imlogV("CMD:SSID Change.\n");
+			json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_VERSION_CONTENT,&result_object);
+			if(result_object!=NULL){
+				version = json_object_get_int(result_object);
+				json_object_put(result_object);//free
+				imlogV("fw version=%d",version);
+			}
+			
+			json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_DOMAIN_CONTENT,&result_object);	
+			if(result_object!=NULL){
+				strcpy(domain,json_object_get_string(request_object));
+				json_object_put(result_object);//free
+			}
+			
+			json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_CHECKSUM_CONTENT,&result_object);
+			if(result_object!=NULL){
+				strcpy(tmp,json_object_get_string(request_object));
+				json_object_put(result_object);//free
+			}
+			
+			json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_SIZE_CONTENT,&result_object);
+			if(result_object!=NULL){
+				size = json_object_get_int(result_object);
+				json_object_put(result_object);//free 
+			}
+			json_object_put(result_object);//free 
+			imlogV("fw size=%d",size);
+			
+			imlogV("CMD:FW Update.\n");
+			
+		}else if(cmd==IMCLOUD_CMD_REBOOT){
+			char *exec_argv[] = { "imcloud", "0", 0 };
+			execv("/proc/self/exe", exec_argv);
+			imlogV("CMD:Reboot.\n");
+		}else if(cmd==IMCLOUD_CMD_INTERVAL_CHANGE){
+			struct json_object *result_object = NULL; 
+			int totals = 0;
+			json_object_object_get_ex(infor_object, IMCLOUD_DATA_INTERVAL_CONTENT,&result_object);
+			totals = json_object_get_int(result_object);
+			imlogV("interval:%d\n", totals);
+			global_setTotals(totals);
+			json_object_put(result_object);//free
+		}else if(cmd==IMCLOUD_CMD_LOGLEVEL_CHANGE){
+			imlogV("CMD:Loglevel.\n");
+		}else if(cmd==IMCLOUD_CMD_WAVEUPLOAD_CHANGE){
+			imlogV("CMD:Wave Upload.\n");
+		}else if(cmd==IMCLOUD_CMD_SSID_CHANGE){
+			imlogV("CMD:SSID Change.\n");
+		}else{
+			imlogE("Error CMD:%d\n", cmd);
+		}
 	}else{
-		imlogE("Error CMD:%d\n", cmd);
+		struct json_object *result_object = NULL;
+		char code[64]={0x0};
+		json_object_object_get_ex(infor_object, IMCLOUD_SERVER_CODE,&result_object); 
+		if(result_object!=NULL){
+			strcpy(code,json_object_get_string(result_object));     
+			imlogE("%s",code);
+			if(strcmp(code,SERVER_INVALID_KEY)==0){
+				cmd = INVALID_KEY;
+			}
+			
+			json_object_object_get_ex(infor_object, IMCLOUD_SERVER_MESSAGE,&result_object);        
+			imlogE("%s",json_object_get_string(result_object));
+		}
+		json_object_put(result_object);//free
+		
 	}
 	
 	json_object_put(request_object);//free
@@ -346,6 +380,7 @@ int CloudDataHandle(char * buf){
 int CloudGetCMD(char * req){
 	int ret = -1;
 	int i = 0;
+	
 	for(i=0;i<IMCLOUD_CMD_MAX;i++){
 		if(strcmp(req,imcloud_cmd_t[i])==0){
 			ret = i;

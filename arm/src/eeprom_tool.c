@@ -24,6 +24,7 @@
 #include <string.h>
 #include <assert.h>
 #include <inttypes.h>
+#include <netinet/in.h> 
 
 #include "eeprom_tool.h"
 #include "global_var.h"
@@ -472,11 +473,11 @@ int im_init_e2prom_data()
 	imlogV("FW=%s",fw_version);	
 	
 	read_data(VGAIN_ADDR, (uint8_t *)&vgain, VGAIN_SIZE);
-	imlogV("vgain=%d",vgain);
-	global_setVgain(vgain);
+	imlogV("vgain=%x",vgain);
+	global_setVgain(htons(vgain));
 	read_data(IGAIN_ADDR, (uint8_t *)&igain, IGAIN_SIZE);
-	imlogV("igain=%d",igain);
-	global_setIgain(igain);
+	imlogV("igain=%x",igain);
+	global_setIgain(htons(igain));
 	read_data(ADC_FREQUENCY_ADDR, (uint8_t *)&frq,ADC_FREQUENCY_SIZE);
 	
 	read_data(ADC_V_THRESHOL, (uint8_t *)threshol,ADC_THRESHOL_SIZE);

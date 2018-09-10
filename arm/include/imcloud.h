@@ -65,6 +65,7 @@ int ImCloudAccessKey();
 int openInputDev(const char* inputName);
 void *sysInputScan(void *arg);
 void *senddata(void *arg);
+int resenddata();
 int GetAcessKey();
 int getConfig();
 #endif

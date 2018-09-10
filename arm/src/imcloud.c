@@ -417,10 +417,11 @@ void *sysInputScan(void *arg)
 			memset(w_sum,0,sizeof(w_sum));
 			for(sample = 0; sample < SAMPLES_FRAME; sample++){
 				vc = waveform_t[index].data[WAVE_V1_CHANNEL*SAMPLES_FRAME+sample]*vgain_f;
+				//imlogV("vc[%d]:%f",sample,vc);
 				for(ch=WAVE_L1_CHANNEL;ch<=WAVE_L4_CHANNEL;ch++){
 					ch_adc = waveform_t[index].data[ch*SAMPLES_FRAME+sample]*igain_f;
-					i_sum[ch] += fabs(ch_adc);
 					w_sum[ch] += vc*ch_adc;
+					i_sum[ch] += fabs(ch_adc);
 				}
 				v_sum+=fabs(vc);
 			}
@@ -540,6 +541,11 @@ void *senddata(void *arg)
 		return NULL;
 	}
 	
+	if(resenddata() == INVALID_KEY){
+		imlogE("resenddata KEY_INVALID.\n");
+		return NULL;
+	}
+	
 	/*
 	backup_len = im_redis_get_backup_len();
 	if(backup_len>0){
@@ -603,7 +609,7 @@ void *senddata(void *arg)
 	return NULL;
 }
 
-void *resenddata(void *arg)
+int resenddata()
 {
 	int backup_len = 0;
 	int i=0;
@@ -613,6 +619,9 @@ void *resenddata(void *arg)
 	int ret = 0;
 	
 	backup_len = im_redis_get_backup_len();
+	
+	imlogV("resenddata = %d \n",backup_len);
+	
 	if(backup_len>0){
 		for(i=0;i<backup_len;i++){
 			char name[CONFIG_FILENAME_LEN]={0x0};
@@ -635,6 +644,11 @@ void *resenddata(void *arg)
 					if(ret == INVALID_KEY){
 						key_status = KEY_INVALID;
 						imcloud_status = IMCOULD_ACTIVATE;
+						free(postdata);
+						break;
+					}else{
+						free(postdata);
+						break;
 					}
 					imlogE("ImCloud RESend Backup Error.\n");
 				}
@@ -642,7 +656,7 @@ void *resenddata(void *arg)
 			}
 		}
 	}
-	return NULL;
+	return ret;
 }
 /*************************************************
 Function: GetAcessKey

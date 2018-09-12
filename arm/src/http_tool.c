@@ -198,15 +198,17 @@ int ImHttpPostStr(char *url,char* header,uint8_t * post_data,int data_len,char *
 		curl_slist_free_all(chunk);
 		
 		/* Check for errors */   
-		if(res != CURLE_OK)  
-		  imlogE("curl_easy_perform() failed: %s\n",  
-			  curl_easy_strerror(res));  
-
-		res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE , &retcode);
-		if(res == CURLE_OK){
-			ret = 0;
-		}else{
-			imlogE("Error %ld\n",retcode);
+		if(res != CURLE_OK){
+			imlogE("curl_easy_perform() failed: %s\n",  
+			curl_easy_strerror(res)); 
+		}
+		else{
+			res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE , &retcode);
+			if(res == CURLE_OK){
+				ret = 0;
+			}else{
+				imlogE("Error %ld\n",retcode);
+			}
 		}
 		/* always cleanup */   
 		curl_easy_cleanup(curl);  
@@ -314,15 +316,17 @@ int ImHttpPost(char *url,char* header,uint8_t * post_data,int data_len,char *rev
 		curl_slist_free_all(chunk);
 		
 		/* Check for errors */   
-		if(res != CURLE_OK)  
-		  imlogE("curl_easy_perform() failed: %s\n",  
-			  curl_easy_strerror(res));  
-
-		res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE , &retcode);
-		if(res == CURLE_OK){
-			ret = 0;
-		}else{
-			imlogE("Error %ld\n",retcode);
+		if(res != CURLE_OK){
+			imlogE("curl_easy_perform() failed: %s\n",  
+			curl_easy_strerror(res)); 
+		}
+		else{
+			res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE , &retcode);
+			if(res == CURLE_OK){
+				ret = 0;
+			}else{
+				imlogE("Error %ld\n",retcode);
+			}
 		}
 		/* always cleanup */   
 		curl_easy_cleanup(curl);  
@@ -449,15 +453,17 @@ int ImHttpPostStream(char *url,char* header,int first_time,int data_len,char *re
 		curl_slist_free_all(chunk);
 		
 		/* Check for errors */   
-		if(res != CURLE_OK)  
-		  imlogE("curl_easy_perform() failed: %s\n",  
-			  curl_easy_strerror(res));  
-
-		res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE , &retcode);
-		if(res == CURLE_OK){
-			ret = 0;
-		}else{
-			imlogE("Error %ld\n",retcode);
+		if(res != CURLE_OK){
+			imlogE("curl_easy_perform() failed: %s\n",  
+			curl_easy_strerror(res)); 
+		}
+		else{
+			res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE , &retcode);
+			if(res == CURLE_OK){
+				ret = 0;
+			}else{
+				imlogE("Error %ld\n",retcode);
+			}
 		}
 		/* always cleanup */   
 		curl_easy_cleanup(curl);  

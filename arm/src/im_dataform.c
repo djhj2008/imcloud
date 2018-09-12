@@ -51,7 +51,7 @@ void waveHead2Buf(struct data_header  *data_header_s,struct data_header  *data_h
 	data_header_d->flag=data_header_s->flag;
 	data_header_d->igain = htons(data_header_s->igain);
 	data_header_d->vgain = htons(data_header_s->vgain);
-	data_header_d->start_time = htonl(data_header_s->start_time);
+	data_header_d->start_time = (uint32_t)htonl(data_header_s->start_time);
 }
 
 #if 0
@@ -325,7 +325,7 @@ int GenerateWaveFile(char * file,int *len ,int * first_time,int ichannels,int vc
 }
 #endif
 
-uint8_t * GenerateBackupWaveform(char * file,int *len ,int * first_time)
+uint8_t * GenerateBackupWaveform(char * file,int *len ,uint32_t * first_time)
 {
 	int fd;
 	struct data_header header_buf;
@@ -333,6 +333,7 @@ uint8_t * GenerateBackupWaveform(char * file,int *len ,int * first_time)
 	int file_size;
 	
 	file_size = get_file_size(file);
+	imlogV("backup file size:%d",file_size);
 	fd = open(file,O_RDWR);
 	if(fd<0){
 		imlogE("file open error.\n");
@@ -340,7 +341,7 @@ uint8_t * GenerateBackupWaveform(char * file,int *len ,int * first_time)
 	}
 	read(fd,&header_buf,sizeof(struct data_header));
 	
-	*first_time = htonl(header_buf.start_time);
+	*first_time = (uint32_t)htonl(header_buf.start_time);
 	postdata = (uint8_t *)malloc(file_size);
 	*len = read(fd,postdata,file_size);
 	
@@ -349,7 +350,7 @@ uint8_t * GenerateBackupWaveform(char * file,int *len ,int * first_time)
 }
 
 
-uint8_t * GenerateWaveform(char * file,int *len ,int * first_time,int ichannels,int vchannels,int totals,uint8_t flag)
+uint8_t * GenerateWaveform(char * file,int *len ,uint32_t * first_time,int ichannels,int vchannels,int totals,uint8_t flag)
 {
 	int fd;
 	int h_count,w_count,o_count,plc_count;

@@ -19,7 +19,7 @@
 #define GLOBAL_TOTALS_DEFAULT 15
 
 //#define GLOBAL_DOMAIN_DEFAULT "iot.xunrun.com.cn"
-#define GLOBAL_DOMAIN_DEFAULT """35.229.162.114"
+#define GLOBAL_DOMAIN_DEFAULT "35.229.162.114"
 //#define GLOBAL_DOMAIN_DEFAULT "35.229.161.137"
 #define GLOBAL_URL_HEADER "https://"
 //#define GLOBAL_URL_CONTENT "/base/index.php/Home/time"
@@ -61,4 +61,5 @@ float global_getVthreshol();
 float global_getIthreshol();
 void global_setVthreshol(float vthreshol);
 void global_setIthreshol(float ithreshol);
+void global_setdomain(char *url);
 #endif

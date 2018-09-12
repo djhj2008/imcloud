@@ -11,8 +11,8 @@
 #define MAX_BACK_FILE 100
 #define CONFIG_FILENAME_LEN 32
 #define CONFIG_FILEPATH_LEN 64
-#define DEFAULT_DIRPATH "./data"
-#define SAVE_DIRPATH "./save"
+#define DEFAULT_DIRPATH "/data"
+#define SAVE_DIRPATH "/save"
 
 /* =================================== API ======================================= */
 int im_scanDir() ;

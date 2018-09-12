@@ -55,6 +55,7 @@ Function List:
 #include "global_var.h"
 #include "eeprom_tool.h"
 
+char domain[32]={0};
 /* get from server.needed other server interface */
 char access_key[ACCESS_KEY_SIZE+1]={0};
 /*wifi Mac ADDR */
@@ -76,6 +77,11 @@ float I_threshol = 0.0;
 
 static uint8_t global_adc_frq;
 
+void global_setdomain(char *url)
+{
+	strcpy(domain,url);
+}
+
 uint16_t global_getFWversion()
 {
 	uint16_t major=(FW_VERSION_MAJOR<<12)&0xffff;
@@ -85,7 +91,6 @@ uint16_t global_getFWversion()
 	
 	return major|minor|revision|host;
 }
-
 
 
 void global_setAdcFrq(uint8_t hz)
@@ -124,7 +129,9 @@ void global_setUrl(enum ICOULD_URL index)
 	char buf[256]={0x0};
 	
 	strcpy(buf,GLOBAL_URL_HEADER);
-	strcat(buf,GLOBAL_DOMAIN_DEFAULT);
+	
+	strcat(buf,domain);
+
 	strcat(buf,GLOBAL_URL_CONTENT);
 	if(index == ICLOUD_URL_ACTIVATE){
 		strcat(buf,GLOBAL_URL_ACCESSKEY);

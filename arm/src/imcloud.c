@@ -104,14 +104,13 @@ int ImCloudData(uint8_t * data,int first_time,int len,int try)
     strcat(data_url,str_time);
 	imlogV("Data URL: %s\n",  data_url);
 
-	//ret = ImHttpPostStream(data_url,chunkstr,first_time,len,buffer);
 	ret = ImHttpPost(data_url,chunkstr,data,len,buffer);
 	if(ret < 0){
 		imlogE("CloudDataHandle Error:%s\n",buffer);
 		while(retry > 0){
 			imlogE("ImHttpPost retry: %d,wait 5 sec.\n",  retry);
 			sleep(5);
-			ret = ImHttpPostStream(data_url,chunkstr,first_time,len,buffer);
+			ret = ImHttpPost(data_url,chunkstr,data,len,buffer);
 			if(ret == 0){
 				cmd = CloudDataHandle(buffer);
 				break;
@@ -514,7 +513,7 @@ void *senddata(void *arg)
 	int vcount = global_getVchannelsCount();
 	char filename[CONFIG_FILENAME_LEN]={0x0};
 	char filepath[CONFIG_FILEPATH_LEN]={0x0};
-	int first_time=0;
+	uint32_t first_time=0;
 	int ret;
 	
 	get_filename(filename);
@@ -535,69 +534,36 @@ void *senddata(void *arg)
 	im_close(fd);
 	
 	sprintf(filepath,"%s/%s",DEFAULT_DIRPATH,filename);
-	if(key_status == KEY_INVALID){
-		im_backfile(filepath);
-		imlogE("senddata KEY_INVALID.\n");
-		return NULL;
-	}
-	
-	if(resenddata() == INVALID_KEY){
-		imlogE("resenddata KEY_INVALID.\n");
-		return NULL;
-	}
-	
-	/*
-	backup_len = im_redis_get_backup_len();
-	if(backup_len>0){
-		for(i=0;i<backup_len;i++){
-			char name[CONFIG_FILENAME_LEN]={0x0};
-			char file[CONFIG_FILEPATH_LEN]={0x0};
-			
-			len = 0;
-			im_redis_get_list_head(name);
-			sprintf(file,"%s/%s.bak",SAVE_DIRPATH,name);
-			imlogE("backup file:%s \n",file);
-			postdata = GenerateWaveform(file,&len,&first_time,icount,vcount,totals,flag);
-			if(postdata!=NULL){
-				imlogV("post len = %d \n",len);
-				imlogV("post first_time = %d \n",first_time);
-				ret = ImCloudData(postdata,first_time,len,HTTP_RETRY_MAX);
-				if(ret==STATUS_OK){
-					im_delfile(file);
-					im_redis_pop_head();
-					imlogE("ImCloud Send Backup OK.\n");
-				}else{
-					if(ret == INVALID_KEY){
-						key_status = KEY_INVALID;
-						imcloud_status = IMCOULD_ACTIVATE;
-					}
-					imlogE("ImCloud Send Backup Error.\n");
-				}
-				free(postdata);
-			}else{
-				imlogE("postdata NULL \n");
-			}
-		}
-	}
-	*/
-	
 	len = 0;
 	postdata = GenerateWaveform(filepath,&len,&first_time,icount,vcount,totals,flag);
 	if(postdata!=NULL){
+		im_delfile(filepath);
 		imlogV("post len = %d \n",len);
 	}else{
 		imlogE("postdata NULL \n");
 		return NULL;
 	}
 	
-	//sprintf(filepath,"%s/%d.bin",DEFAULT_DIRPATH,first_time);
+	if(key_status == KEY_INVALID){
+		im_save_postdata(postdata,len);
+		free(postdata);
+		imlogE("senddata KEY_INVALID.\n");
+		return NULL;
+	}
+	
+	if(resenddata() == INVALID_KEY){
+		im_save_postdata(postdata,len);
+		free(postdata);
+		imlogE("resenddata KEY_INVALID.\n");
+		return NULL;
+	}
 	
 	ret = ImCloudData(postdata,first_time,len,HTTP_RETRY_MAX);
-	if(ret==STATUS_OK){
-		im_delfile(filepath);
-	}else{
-		key_status = KEY_INVALID;
-		imcloud_status = IMCOULD_ACTIVATE;
+	if(ret!=STATUS_OK){
+		if(ret == INVALID_KEY){
+			key_status = KEY_INVALID;
+			imcloud_status = IMCOULD_ACTIVATE;
+		}
 		imlogE("ImCloud Data Error.\n");
 		im_save_postdata(postdata,len);
 		//im_backfile(filepath); 
@@ -615,7 +581,7 @@ int resenddata()
 	int i=0;
 	uint8_t *postdata = NULL;
 	int len;
-	int first_time=0;
+	uint32_t first_time=0;
 	int ret = 0;
 	
 	backup_len = im_redis_get_backup_len();
@@ -630,11 +596,11 @@ int resenddata()
 			len = 0;
 			im_redis_get_list_head(name);
 			sprintf(file,"%s/%s.bak",SAVE_DIRPATH,name);
-			imlogE("backup file:%s \n",file);
+			imlogV("resenddata backup file:%s \n",file);
 			postdata = GenerateBackupWaveform(file,&len,&first_time);
 			if(postdata!=NULL){
-				imlogV("post len = %d \n",len);
-				imlogV("post first_time = %d \n",first_time);
+				imlogV("resenddata post len = %d \n",len);
+				imlogV("resenddata post first_time = %d \n",first_time);
 				ret = ImCloudData(postdata,first_time,len,HTTP_RETRY_MAX);
 				if(ret==STATUS_OK){
 					im_delfile(file);
@@ -729,7 +695,47 @@ Output:
 *************************************************/
 int getConfig()
 {
-	global_setTotals(GLOBAL_TOTALS_DEFAULT);
+	int fd;
+	struct json_object *result_object = NULL;
+	struct json_object *infor_object = NULL;
+	char buf[1024];
+
+	fd = open(CONFIG_FILE_PATH,O_RDWR);
+	if(fd<0){
+		imlogE("Config file open error.");
+	}
+	read(fd,buf,1024);
+	close(fd);
+
+	infor_object = json_tokener_parse(buf);
+	
+	if(infor_object!=NULL){
+		json_object_object_get_ex(infor_object, "debug",&result_object);
+		if(result_object!=NULL){
+			setDebugOnOff(json_object_get_int(result_object));
+		}
+
+		json_object_object_get_ex(infor_object, "interval",&result_object);
+		if(result_object!=NULL){
+			global_setTotals(json_object_get_int(result_object));
+		}else{
+			global_setTotals(GLOBAL_TOTALS_DEFAULT);
+		}  
+			
+		json_object_object_get_ex(infor_object, "domain",&result_object);
+		if(result_object!=NULL){
+			global_setdomain((char *)json_object_get_string(result_object));
+		}else{
+			global_setdomain(GLOBAL_DOMAIN_DEFAULT);
+		}
+	}else{
+		global_setTotals(GLOBAL_TOTALS_DEFAULT);
+		global_setdomain(GLOBAL_DOMAIN_DEFAULT);
+	}
+	json_object_put(result_object);//free
+	json_object_put(infor_object);//free
+	
+	//global_setTotals(GLOBAL_TOTALS_DEFAULT);
 	global_startNextTotals();
 	global_setUrl(ICLOUD_URL_ACTIVATE);
 	global_setUrl(ICLOUD_URL_INFO);

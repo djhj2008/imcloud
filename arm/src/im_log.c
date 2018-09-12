@@ -91,8 +91,8 @@ void imlogE(char *format, ...)
     timep = time(NULL);
     tmp = localtime(&timep); //获取当地时间
     
-    printf("[%d-%d-%d ", tmp->tm_year-100+2000,tmp->tm_mon+1,tmp->tm_mday); //输出日期
-    printf("%d:%d:%d]", tmp->tm_hour,tmp->tm_min,tmp->tm_sec);  //输出时间
+    printf("[%04d-%02d-%02d ", tmp->tm_year-100+2000,tmp->tm_mon+1,tmp->tm_mday); //输出日期
+    printf("%02d:%02d:%02d]", tmp->tm_hour,tmp->tm_min,tmp->tm_sec);  //输出时间
     printf("Error ");
     
     pcParameter = format;

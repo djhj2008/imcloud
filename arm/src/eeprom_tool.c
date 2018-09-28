@@ -102,7 +102,7 @@ int write_data(u32 offset, u8 *buf, int len){
 	u32 m_offset = ((offset / PAGE_SIZE) + ((offset % PAGE_SIZE) ? 1: 0)) * PAGE_SIZE;
 
 	f_len = m_offset - offset;
-	f_len = f_len <= 0 ? 0 : f_len;
+	f_len = (len <= f_len) ? len : ((f_len <= 0) ? 0 : f_len);
 	s_len = (len <= f_len) ? 0 : (len - f_len);
 
 	while(f_len || s_len){

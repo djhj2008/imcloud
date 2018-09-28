@@ -35,4 +35,6 @@
 
 /* =================================== API ======================================= */
 int led_ctrl_ADC7606_ct_direction(int index,int on_off);
+void led_init();
+int led_ctrl_ADC7606_ct(int index,int on_off);
 #endif

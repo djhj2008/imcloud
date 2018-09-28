@@ -19,7 +19,7 @@
 
 #include <fcntl.h>
 #include <dirent.h>
-
+#include <math.h>
 #include <netinet/in.h> 
 
 #include "plchead.h"
@@ -43,6 +43,30 @@ float htomf(float inFloat)
 	//returnFloat[3] = floatToConvert[0];
 	return inFloat*1000;
 } 
+
+uint16_t htomId(uint16_t i)
+{
+	
+	//imlogV("i %d",(int16_t)i);
+	int temp = (int16_t)i+8192;
+	uint16_t value=(uint16_t)temp;
+	//imlogV("value %d",value);
+	
+	/*
+	int16_t temp = (int16_t)i;
+	int16_t value = 0;
+	imlogV("temp %d",temp);
+	if(temp<0){
+		value = fabs(temp);
+	}else{
+		value = 0-temp;
+	}
+	imlogV("value %d",value);
+	*/
+	
+	return value;
+} 
+
 
 void waveHead2Buf(struct data_header  *data_header_s,struct data_header  *data_header_d)
 {
@@ -329,8 +353,9 @@ uint8_t * GenerateBackupWaveform(char * file,int *len ,uint32_t * first_time)
 {
 	int fd;
 	struct data_header header_buf;
-	uint8_t *postdata;
+	uint8_t *postdata=NULL;
 	int file_size;
+	int time;
 	
 	file_size = get_file_size(file);
 	imlogV("backup file size:%d",file_size);
@@ -340,11 +365,14 @@ uint8_t * GenerateBackupWaveform(char * file,int *len ,uint32_t * first_time)
 		return NULL;
 	}
 	read(fd,&header_buf,sizeof(struct data_header));
-	
 	*first_time = (uint32_t)htonl(header_buf.start_time);
-	postdata = (uint8_t *)malloc(file_size);
-	*len = read(fd,postdata,file_size);
-	
+	time = *first_time;
+	imlogV("backup file time:%d",time);
+	if((time<4102416000)&&(time>1514736000)){
+		lseek(fd,0,SEEK_SET);
+		postdata = (uint8_t *)malloc(file_size);
+		*len = read(fd,postdata,file_size);
+	}
 	return postdata;
 	
 }
@@ -468,27 +496,33 @@ uint8_t * GenerateWaveform(char * file,int *len ,uint32_t * first_time,int ichan
 			imlogV("times : %d index  rssi end: %d\n", i,index);
 			
 			for(j=0;j<PLC_FRAMES_PER_GROUP_MAX;j++){
-				int w1,w2,w3,w4;
+				int w1=0,w2=0,w3=0,w4=0;
+				imlogV("w1=%f w2=%f w3=%f w4=%f\n",
+				waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w1,
+				waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w2,
+				waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w3,
+				waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w4);
 				if((flag&0x01)==0x01){
-					w1 = htomf(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w1);
+					w1 = htonl((int)htomf(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w1));
 					memcpy(postdata+index,&w1,sizeof(uint32_t));
 					index += sizeof(float);
 				}
 				if((flag&0x02)==0x02){
-					w2 = htomf(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w2);
+					w2 = htonl((int)htomf(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w2));
 					memcpy(postdata+index,&w2,sizeof(uint32_t));
 					index += sizeof(float);
 				}
 				if((flag&0x04)==0x04){
-					w3 = htomf(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w3);
+					w3 = htonl((int)htomf(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w3));
 					memcpy(postdata+index,&w3,sizeof(uint32_t));
 					index += sizeof(float);	
 				}
 				if((flag&0x08)==0x08){
-					w4 = htomf(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w4);
+					w4 = htonl((int)htomf(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w4));
 					memcpy(postdata+index,&w4,sizeof(uint32_t));
 					index += sizeof(float);	
 				}
+				imlogV("w1=%d w2=%d w3=%d w4=%d\n",htonl(w1),htonl(w2),htonl(w3),htonl(w4));
 			}
 
 			imlogV("index wat end: %d\n", index);
@@ -515,7 +549,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,uint32_t * first_time,int ichan
 			imlogV("times : %d index  rssi end: %d\n", i,index);
 			
 			for(j=0;j<remaining;j++){
-				int w1,w2,w3,w4;
+				int w1=0,w2=0,w3=0,w4=0;
 				imlogV("w1=%f w2=%f w3=%f w4=%f\n",
 				waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w1,
 				waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w2,
@@ -541,13 +575,9 @@ uint8_t * GenerateWaveform(char * file,int *len ,uint32_t * first_time,int ichan
 					memcpy(postdata+index,&w4,sizeof(uint32_t));
 					index += sizeof(float);	
 				}
-				imlogV("pw1=%d pw2=%d pw3=%d pw4=%d\n",
-				w1,
-				w2,
-				w3,
-				w4);				
+				imlogV("w1=%d w2=%d w3=%d w4=%d\n",htonl(w1),htonl(w2),htonl(w3),htonl(w4));
 			}
-
+		
 			imlogV("index wat end: %d\n", index);
 			
 			remaining = 0;
@@ -600,10 +630,10 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 	int		i, j, k, l, result_size;
 	ple_code_t	ier_e;
 
-	uint16_t vgain = global_getVgain();
-	uint16_t igain = global_getIgain();
-	float vgain_f = short2float(vgain);
-	float igain_f = short2float(igain);
+	//uint16_t vgain = global_getVgain();
+	//uint16_t igain = global_getIgain();
+	//float vgain_f = short2float(vgain);
+	//float igain_f = short2float(igain);
 	
 	
 	imlogV("ucFundamentalFrq  : %d\n", ucFundamentalFrq);
@@ -662,6 +692,7 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 	global_dumpCH();
 	/* Loop */
 	for(j=0;j<ucFramesPerGroup;j++){
+		/*
 		float w1_sum = 0;
 		float w2_sum = 0;
 		float w3_sum = 0;
@@ -676,6 +707,7 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 		float w2 = 0;
 		float w3 = 0;
 		float w4 = 0;
+		*/
 		l = 0;
 		/* preparing wave data (1 sec) */
 		//imlogV("index=%d v=%d l1=%d l2=%d\n",j,waveform_t[j+sub_index].data[0],waveform_t[j+sub_index].data[64],waveform_t[j+sub_index].data[128]);
@@ -683,7 +715,12 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 			int iflag = global_getChFlag(k);
 			if(iflag == ADC_CH_OPEN){
 				for(i=0;i<ucSamplesPerFrame;i++){
-					ppusWave[l][i] = waveform_t[j+sub_index].data[i+k*ucSamplesPerFrame];
+					if(k<WAVE_V1_CHANNEL){
+						uint16_t itemp = htomId(waveform_t[j+sub_index].data[i+k*ucSamplesPerFrame]);
+						ppusWave[l][i] = (uint16_t)itemp;
+					}else{
+						ppusWave[l][i] = waveform_t[j+sub_index].data[i+k*ucSamplesPerFrame];
+					}
 				}
 				l++;
 			}
@@ -693,6 +730,7 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 			}
 		}
 		
+/*		
 		for(i = 0; i < ucSamplesPerFrame; i++){
 			vc = ((short)ppusWave[ucCurrentChannels][i])*vgain_f;
 			//imlogV("vc=%f vgain_f=%f",vc,vgain_f);
@@ -712,12 +750,12 @@ ple_uint8_t* ple_decode(struct waveform *waveform_t,
 		w3 = w3_sum/ucSamplesPerFrame;
 		w4 = w4_sum/ucSamplesPerFrame;
 		
-		//imlogV("v=%f",v_sum/ucSamplesPerFrame);
+		imlogV("v=%f",v_sum/ucSamplesPerFrame);
 		if(w1 != waveform_t[j+sub_index].w1||w2 != waveform_t[j+sub_index].w2){
 			imlogV("w1 = %f pw1 = %f ,w2 = %f pw2 = %f\n",w1,waveform_t[j+sub_index].w1,w2,waveform_t[j+sub_index].w2);
 			imlogV("w3 = %f pw3 = %f ,w4 = %f pw4 = %f\n",w3,waveform_t[j+sub_index].w3,w4,waveform_t[j+sub_index].w4);
 		}
-
+*/
 		/* Put data to PLE */
 		ier_e = PLEPutData(hPle, (const ple_uint16_t **)ppusWave);
 		if(ier_e < 0) {

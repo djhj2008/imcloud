@@ -258,6 +258,7 @@ float short2float(uint16_t a)
   int i=0;
   int max=16;
   float c = 0;
+
   for(i=0;i<max;i++){
       int t= (a>>i)&0x01;
       if(t==1){
@@ -274,13 +275,13 @@ float short2float(uint16_t a)
 
 void global_setIgain(uint16_t igain)
 {
-	global_igain = igain;
+	global_igain = igain<<2;
 	imlogV("global_igain:%d",global_igain);
 }
 
 void global_setVgain(uint16_t vgain)
 {
-	global_vgain = vgain;
+	global_vgain = vgain<<2;
 	imlogV("global_vgain:%d",global_vgain);
 }
 

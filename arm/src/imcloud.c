@@ -305,6 +305,24 @@ Input:
 Output: 
 * @return NULL
 *************************************************/
+
+int16_t htomI(int16_t i)
+{
+	/*
+	uint16_t stam= 0x8000&i;
+	uint16_t value = i&0x7fff;
+	int16_t ret = 0;
+	imlogV("stam=0x%x",stam);
+	imlogV("value=0x%x",value);
+	imlogV("i=0x%x",i);
+	ret = stam|((value>>2)&0x3fff);
+	imlogV("ret=0x%d",ret);
+	*/
+	int16_t ret=i/4;
+	return ret;
+} 
+
+
 void *sysInputScan(void *arg)
 {  
     int l_ret = -1;  
@@ -391,14 +409,16 @@ void *sysInputScan(void *arg)
 					else{
 						old_val = (ping_data.sample[(sample * 3) + (ch/2)] >> 16) & 0xffff;
 					}
-					val = old_val;
-					//imlogV("CH[%d]=%d",ch,val);
+					val = htomI((int16_t)old_val);
+					
 					if(ch == ADC_V1_CHANNEL){
 						waveform_t[index].data[WAVE_V1_CHANNEL*SAMPLES_FRAME+sample]=val;
 					}else if(ch == ADC_V2_CHANNEL){
 						waveform_t[index].data[WAVE_V2_CHANNEL*SAMPLES_FRAME+sample]=val;
 					}else if(ch == ADC_L1_CHANNEL){
-						waveform_t[index].data[WAVE_L1_CHANNEL*SAMPLES_FRAME+sample]=val;
+						uint16_t itemp = val;
+						waveform_t[index].data[WAVE_L1_CHANNEL*SAMPLES_FRAME+sample]=itemp;
+						//imlogV("CH[%d]=%d",ch,val);
 					}else if(ch == ADC_L2_CHANNEL){
 						waveform_t[index].data[WAVE_L2_CHANNEL*SAMPLES_FRAME+sample]=val;						
 					}else if(ch == ADC_L3_CHANNEL){
@@ -414,25 +434,33 @@ void *sysInputScan(void *arg)
 			ch_adc = 0;
 			v_sum = 0;
 			memset(w_sum,0,sizeof(w_sum));
+			memset(i_sum,0,sizeof(i_sum));
 			for(sample = 0; sample < SAMPLES_FRAME; sample++){
 				vc = waveform_t[index].data[WAVE_V1_CHANNEL*SAMPLES_FRAME+sample]*vgain_f;
 				//imlogV("vc[%d]:%f",sample,vc);
 				for(ch=WAVE_L1_CHANNEL;ch<=WAVE_L4_CHANNEL;ch++){
 					ch_adc = waveform_t[index].data[ch*SAMPLES_FRAME+sample]*igain_f;
+					//if(ch==0)
+					//imlogV("I[%d][%d]:%f",ch,sample,ch_adc);
 					w_sum[ch] += vc*ch_adc;
 					i_sum[ch] += fabs(ch_adc);
 				}
 				v_sum+=fabs(vc);
 			}
 			
+
+
+
+
 			for(ch=WAVE_L1_CHANNEL;ch<=WAVE_L4_CHANNEL;ch++){
+				imlogV("ia[%d] =%f ",ch,i_sum[ch]/SAMPLES_FRAME);
 				if((v_sum/SAMPLES_FRAME>=V_threshol)
-						&&(i_sum[ch]>=I_threshol)
-						&&(w_sum[ch]/SAMPLES_FRAME < LED_ADC_DIRECTION_POWER)
+						&&(i_sum[ch]/SAMPLES_FRAME>=I_threshol)
+						&&(w_sum[ch]/SAMPLES_FRAME > LED_ADC_DIRECTION_POWER)
 				){
-					led_ctrl_ADC7606_ct_direction(ch,ADC7606_LED_RED);
-				}else{
 					led_ctrl_ADC7606_ct_direction(ch,ADC7606_LED_BLUE);
+				}else{
+					led_ctrl_ADC7606_ct_direction(ch,ADC7606_LED_RED);
 				}
 			}
 			
@@ -551,13 +579,6 @@ void *senddata(void *arg)
 		return NULL;
 	}
 	
-	if(resenddata() == INVALID_KEY){
-		im_save_postdata(postdata,len);
-		free(postdata);
-		imlogE("resenddata KEY_INVALID.\n");
-		return NULL;
-	}
-	
 	ret = ImCloudData(postdata,first_time,len,HTTP_RETRY_MAX);
 	if(ret!=STATUS_OK){
 		if(ret == INVALID_KEY){
@@ -572,6 +593,11 @@ void *senddata(void *arg)
 	im_redis_backup_dump();
 	free(postdata);
 
+	if(resenddata() == INVALID_KEY){
+		imlogE("resenddata KEY_INVALID.\n");
+		return NULL;
+	}
+	
 	return NULL;
 }
 
@@ -594,13 +620,17 @@ int resenddata()
 			char file[CONFIG_FILEPATH_LEN]={0x0};
 			
 			len = 0;
-			im_redis_get_list_head(name);
+			if(im_redis_get_list_head(name)<0){
+				imlogE("im_redis_get_list_head Error.");
+				break;
+			}
 			sprintf(file,"%s/%s.bak",SAVE_DIRPATH,name);
 			imlogV("resenddata backup file:%s \n",file);
 			postdata = GenerateBackupWaveform(file,&len,&first_time);
 			if(postdata!=NULL){
 				imlogV("resenddata post len = %d \n",len);
 				imlogV("resenddata post first_time = %d \n",first_time);
+				imlogV("resenddata postdata = %x \n",postdata[0]);
 				ret = ImCloudData(postdata,first_time,len,HTTP_RETRY_MAX);
 				if(ret==STATUS_OK){
 					im_delfile(file);
@@ -619,6 +649,10 @@ int resenddata()
 					imlogE("ImCloud RESend Backup Error.\n");
 				}
 				free(postdata);
+			}else{
+				im_delfile(file);
+				im_redis_pop_head();
+				imlogE("ImCloud backup File Error.\n");
 			}
 		}
 	}
@@ -697,7 +731,7 @@ int getConfig()
 {
 	int fd;
 	struct json_object *result_object = NULL;
-	struct json_object *infor_object = NULL;
+	struct json_object *infor_object = NULL; 
 	char buf[1024];
 
 	fd = open(CONFIG_FILE_PATH,O_RDWR);
@@ -784,6 +818,8 @@ int main(int arg, char *arc[])
 	char *access_key=global_getAccesskey();
 	
 	imlogV("MAIN:VERAION:%d",global_getFWversion());
+	
+	led_init();
 	
     /* init redis */
     if (redis_init()) {

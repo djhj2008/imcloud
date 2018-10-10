@@ -218,7 +218,7 @@ int getLocalMac(char * mac_addr)
 
     int sock_mac;  
     struct ifreq ifr_mac;  
-    unsigned char first=0;
+    //unsigned char first=0;
     
     sock_mac = socket(AF_INET, SOCK_STREAM, 0);  
     if (sock_mac == -1)  
@@ -243,6 +243,7 @@ int getLocalMac(char * mac_addr)
 		return -1;
 	}
     else{
+		/*
 		if((ifr_mac.ifr_hwaddr.sa_data[0]&0x02)==0x02)
         {
           first = ifr_mac.ifr_hwaddr.sa_data[0]&0xfd;
@@ -250,10 +251,10 @@ int getLocalMac(char * mac_addr)
         else{
           first = ifr_mac.ifr_hwaddr.sa_data[0]|0x02;
         }
-        
+        */
 
         sprintf(mac_addr, "%02X%02X%02X%02X%02X%02X%02X%02X",  
-            (unsigned char)first,  
+            (unsigned char)ifr_mac.ifr_hwaddr.sa_data[0],  
             (unsigned char)ifr_mac.ifr_hwaddr.sa_data[1],  
             (unsigned char)ifr_mac.ifr_hwaddr.sa_data[2], 
              0xff,0xfe,
@@ -261,7 +262,6 @@ int getLocalMac(char * mac_addr)
             (unsigned char)ifr_mac.ifr_hwaddr.sa_data[4],  
             (unsigned char)ifr_mac.ifr_hwaddr.sa_data[5]  
         );  
-		//strcpy(mac_addr,"8EA982FFFEFF2A99");
     	return 0;
     }
 } 

@@ -48,7 +48,7 @@ size_t readfile_callback(void *ptr, size_t size, size_t nmemb, void *userp)
 			read(fd,ptr,pooh->bytes_remaining);
 			//memcpy(ptr, pooh->data + pooh->bytes_written, pooh->bytes_remaining);
 			pooh->bytes_remaining=0;
-			close(fd);
+			//close(fd);
 			return w_size;
 		}
 	}
@@ -360,7 +360,7 @@ int ImHttpPostStream(char *url,char* header,int first_time,int data_len,char *re
 	}  
  
 	/* get a curl handle */   
-	curl = curl_easy_init();  
+	curl = curl_easy_init();
 	if(curl) {  
 		/* First set the URL that is about to receive our POST. */   
 		curl_easy_setopt(curl, CURLOPT_URL, url);  
@@ -465,6 +465,7 @@ int ImHttpPostStream(char *url,char* header,int first_time,int data_len,char *re
 				imlogE("Error %ld\n",retcode);
 			}
 		}
+		close(fd);
 		/* always cleanup */   
 		curl_easy_cleanup(curl);  
 	}  

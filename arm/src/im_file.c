@@ -236,7 +236,7 @@ int im_save_postdata(uint8_t *postdata,int len)
 			ret = 0;
 		}
 	}
-	
+	close(fd);
 	if(ret == 0 ){
 		im_redis_backup_push(file_back);
 	}
@@ -331,8 +331,8 @@ int im_scanDir()
 		imlogE("chdir Home Error.\n");
 		return -1;
 	}
-
 	imlogV("chdir %s\n",getcwd(buf,MAX_DIRPATH_LEN));
+	closedir(dp);
 	return 0;  
 }  
     

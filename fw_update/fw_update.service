@@ -1,0 +1,12 @@
+[Unit]
+Description=FW Update Server
+
+[Service]
+EnvironmentFile=
+ExecStart=/usr/local/bin/fw_update.sh
+ExecReload=/bin/killall fw_update.sh
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

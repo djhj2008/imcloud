@@ -13,6 +13,9 @@
 #define CONFIG_FILEPATH_LEN 64
 #define DEFAULT_DIRPATH "/data"
 #define SAVE_DIRPATH "/save"
+#define FW_DIRPATH "/fw_update"
+
+#define BUFSIZE     1024*4   
 
 /* =================================== API ======================================= */
 int im_scanDir() ;
@@ -29,4 +32,7 @@ int im_delfile(char *filename);
 void get_filename(char * filename);
 int get_file_size(const char *path);
 
+void init_crc_table(void);
+unsigned int crc32(unsigned int crc, unsigned char * buffer, unsigned int size);  
+int calc_img_crc(const char * in_file, unsigned int * img_crc);  
 #endif

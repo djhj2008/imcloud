@@ -1,6 +1,8 @@
 #!/bin/bash
-basepath=$(cd `dirname $0`; pwd)
-echo ${basepath}/libs > imcloud.conf
+#basepath=$(cd `dirname $0`; pwd)
+
+cp -r ./imlibs /usr/local/lib/
+echo '/usr/local/lib/imlibs' > imcloud.conf
 
 systemctl stop imcloud
 mkdir /etc/imcloud

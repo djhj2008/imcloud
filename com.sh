@@ -6,7 +6,7 @@ export PREFIX_HIREDIS=${basepath}/libhiredis
 export PREFIX_JOSN=${basepath}/libjson
 export PREFIX_PLE=${basepath}/plc_lib_intel
 export PREFIX_OPENSSL=${basepath}/libssl-dev
-export LIBS_INSTALL_PATH=$basepath/arm/libs
+export LIBS_INSTALL_PATH=$basepath/arm/imlibs
 flag=0
 
 if [ $1x == "clean"x ]
@@ -70,7 +70,7 @@ then
 fi
 make
 make install
-cp ${basepath}/libcurl/lib/*.so ${LIBS_INSTALL_PATH}
+cp ${basepath}/libcurl/lib/*.so ${LIBS_INSTALL_PATH}/
 
 #hiredis
 cd ${basepath}/hiredis
@@ -81,7 +81,7 @@ then
 fi
 make
 make install
-cp ${PREFIX_HIREDIS}/lib/*.so ${LIBS_INSTALL_PATH}
+cp ${PREFIX_HIREDIS}/lib/*.so ${LIBS_INSTALL_PATH}/
 
 
 #json-c
@@ -95,7 +95,7 @@ then
 fi
 make
 make install
-cp ${PREFIX_JOSN}/lib/*.so ${LIBS_INSTALL_PATH}
+cp ${PREFIX_JOSN}/lib/*.so ${LIBS_INSTALL_PATH}/
 
 #plc_lib_intel
 cd ${basepath}/plc_lib_intel
@@ -105,7 +105,7 @@ then
   make clean
 fi
 make
-cp ${PREFIX_PLE}/*.so ${LIBS_INSTALL_PATH}
+cp ${PREFIX_PLE}/*.so ${LIBS_INSTALL_PATH}/
 
 #openssl-1.0.2g
 cd ${basepath}/openssl-1.0.2g
@@ -116,14 +116,14 @@ then
 fi
 make
 make install
-cp ${PREFIX_OPENSSL}/lib/*.so ${LIBS_INSTALL_PATH}
+cp ${PREFIX_OPENSSL}/lib/*.so ${LIBS_INSTALL_PATH}/
 
 #main
 cd ${basepath}/arm
 make clean
 make
 mkdir imcloud_${IMCLOUD_VERSION}
-cp -r ./imcloud ./libs/ imcloud.service install.sh ReadMe ./config/ imcloud_${IMCLOUD_VERSION}
+cp -r ./imcloud ./imlibs/ imcloud.service install.sh ReadMe ./config/ imcloud_${IMCLOUD_VERSION}
 tar -cvf imcloud_${IMCLOUD_VERSION}.tar imcloud_${IMCLOUD_VERSION}
 mv imcloud_${IMCLOUD_VERSION}.tar ../
 rm -rf ./imcloud_${IMCLOUD_VERSION}

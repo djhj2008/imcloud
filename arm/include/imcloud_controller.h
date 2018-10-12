@@ -92,4 +92,5 @@ int GenerateInfoData(char * postdata);
 int CloudInfoHandle(char * buf);
 int CloudDataHandle(char * buf);
 int CloudGetCMD(char * req);
+uint32_t HEX2int(char *pcBCD);
 #endif

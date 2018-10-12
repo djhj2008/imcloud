@@ -30,7 +30,13 @@
 #define GLOBAL_URL_FW "/fw/"
 
 /* =================================== API ======================================= */
+int global_getFWChecksum();
+void global_setFWChecksum(int check_sum);
+int global_getFWsize();
+void global_setFWsize(int size);
+void global_setFwVersion(uint8_t * version);
 uint16_t global_getFWversion();
+uint16_t global_getFWversionDefault();
 void global_setAdcFrq(uint8_t hz);
 uint8_t gloal_getAdcFrq();
 void global_setAccessKey(char * key);
@@ -62,4 +68,5 @@ float global_getIthreshol();
 void global_setVthreshol(float vthreshol);
 void global_setIthreshol(float ithreshol);
 void global_setdomain(char *url);
+void global_setFwUrl(char *fw_domain);
 #endif

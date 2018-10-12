@@ -16,9 +16,6 @@
 #define IM_BACKUP_KEY_NAME  "wave_backup"
 
 
-
-
-
 /* =================================== API ======================================= */
 int im_redis_backup_dump();
 int im_redis_get_backup_len();

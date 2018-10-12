@@ -35,6 +35,11 @@ Function List:
 #include <time.h>
 #include <getopt.h>
 #include <math.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <dirent.h>
+#include <sys/time.h>
 
 #include <json-c/json.h>
 
@@ -124,6 +129,7 @@ int ImCloudData(uint8_t * data,int first_time,int len,int try)
 	
 	if(cmd == IMCLOUD_CMD_FW_UPDATE){
 		//TODO down firmware
+		thpool_add_work(thpool, (void*)testDownloadfw, NULL);
 	}else if(cmd < 0){
 		ret = cmd;
 	}
@@ -784,7 +790,93 @@ int getConfig()
 	return 0;
 }
 
-
+void *testDownloadfw(void *arg)
+{
+	char *tmp="CF7A65C2";
+	uint32_t sum = HEX2int(tmp);
+	int version = global_getFWversion();
+	unsigned char Signature[HTTP_SIGNATURE_LEN]= {0x0};
+	char chunkstr[HTTP_CHUNK_HEAD_LEN]= {0x0};
+	char *mac = global_getMac();
+	//char *url = "https://iot.xunrun.com.cn/app/Elook2.apk";
+	char *url = global_getUrl(ICLOUD_URL_FW);
+	struct stat file_stat;
+    int ret;
+	char dirpath[MAX_DIRPATH_LEN]={0x0};
+	char src_path[MAX_DIRPATH_LEN]={0x0};
+	int fd;
+	int size=0,file_size=global_getFWsize();
+	int retry = HTTP_RETRY_MAX;
+    uint32_t img_crc;  
+    int download_flag = 0;
+    
+	GenerateSignature(mac,Signature);
+	global_setFWChecksum(sum);
+	global_setFWsize(44730);
+	
+	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac,Signature);
+    imlogV("chunkstr: %s\n",  chunkstr);
+	
+    //下面语句是建立默认文件夹的路径
+    strcpy(dirpath, FW_DIRPATH);//默认的路径为data
+   
+    ret = stat(dirpath, &file_stat);//检查文件夹状态
+    if(ret<0)
+    {
+        if(errno == ENOENT)//是否已经存在该文件夹
+        {
+            ret = mkdir(dirpath, 0775);//创建文件夹
+            imlogV("creat dir %s \n", dirpath);
+            if(ret < 0)
+            {
+                imlogE("Could not create directory %s \n",
+					dirpath);
+				return NULL;
+            }
+ 
+        }
+        else
+        {
+            imlogE("bad file path\n");
+            return NULL;
+        }
+    }
+    sprintf(src_path,"%s/fw_%d.zip",dirpath,version);
+    
+    while(retry>0){
+		im_delfile(src_path);
+		
+		fd = open(src_path,O_RDWR|O_CREAT,0744);
+		if(fd>0){
+			ret = ImHttpDownLoadFile(url,chunkstr,fd,file_size);
+		}
+		close(fd);
+		
+		size = get_file_size(src_path);
+		
+		init_crc_table();  
+		  
+		ret = calc_img_crc(src_path, &img_crc);  
+		if (ret < 0) {  
+			imlogE("CRC Error.");
+		}  
+		
+		if(size == file_size||img_crc==sum){
+			download_flag = 1;
+			retry=0;
+			break;
+		}
+		retry--;
+	}
+	if(download_flag == 1){
+		char *exec_argv[] = { "restart", "fw_update", 0 };
+		execv("/bin/systemctl", exec_argv);
+		imlogV("CMD:Reboot.\n");
+	}
+	
+	imlogV("testdownloadfw end.");
+	return NULL; 
+}
 /*************************************************
 Function: main
 Description: MAIN
@@ -816,9 +908,11 @@ int main(int arg, char *arc[])
 	char mac[MAC_LEN+1]= {0x0};
 	thpool = thpool_init(10);
 	char *access_key=global_getAccesskey();
+	uint16_t version = global_getFWversionDefault();
 	
 	imlogV("MAIN:VERAION:%d",global_getFWversion());
-	
+	eeprom_set_fw_version(version);
+		
 	led_init();
 	
     /* init redis */

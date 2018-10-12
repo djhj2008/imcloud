@@ -100,6 +100,28 @@ size_t copy_data(void *ptr, size_t size, size_t nmemb, void *userp)
 	return res_size;
 }
 
+size_t copy_file(void *ptr, size_t size, size_t nmemb, void *userp)
+{
+	struct ReadFile *rooh = (struct ReadFile *)userp;  
+	int res_size;
+	int fd = rooh->fd;
+	
+	if(size*nmemb < 1)  
+		return 0;  
+
+	res_size = size * nmemb;
+	
+	imlogV("recv:%d,left:%ld\n",res_size,rooh->sizeleft);
+	//imlogV("recv:%s\n",(char *)ptr);
+	
+	lseek(fd,rooh->sizeleft,SEEK_SET);
+	write(fd,ptr,res_size);
+	rooh->sizeleft += res_size; 
+	
+	return res_size;
+}
+
+
 int ImHttpPostStr(char *url,char* header,uint8_t * post_data,int data_len,char *rev_data){
 	CURL *curl;  
 	CURLcode res;
@@ -344,7 +366,7 @@ int ImHttpPostStream(char *url,char* header,int first_time,int data_len,char *re
 	int ret = -1;
 	struct curl_slist *chunk = NULL; 
 	char filepath[CONFIG_FILEPATH_LEN]={0x0};
-	int fd;
+	int fd=0;
 	
 	imlogV("ImHttpPost enter %s.\n",url);
 	
@@ -473,3 +495,103 @@ int ImHttpPostStream(char *url,char* header,int first_time,int data_len,char *re
 	return ret;
 }
 
+int ImHttpDownLoadFile(char *url,char* header,int fd,int file_size)
+{
+	CURL *curl;  
+	CURLcode res;
+	long retcode = 0;
+	struct WriteThis pooh;
+	struct ReadFile rooh;
+	int ret = -1;
+	struct curl_slist *chunk = NULL;
+	
+	imlogV("ImHttpPost enter %s.\n",url);
+	
+	rooh.fd = fd;
+	rooh.sizeleft = 0;
+	rooh.check_sum = 0;
+
+	/* In windows, this will init the winsock stuff */   
+	res = curl_global_init(CURL_GLOBAL_DEFAULT);  
+	/* Check for errors */   
+	if(res != CURLE_OK) {  
+		imlogE("curl_global_init() failed: %s\n", curl_easy_strerror(res));  
+	 	return ret;  
+	}  
+ 
+	/* get a curl handle */   
+	curl = curl_easy_init();  
+	if(curl) {  
+		/* First set the URL that is about to receive our POST. */   
+		curl_easy_setopt(curl, CURLOPT_URL, url);  
+
+		curl_easy_setopt(curl, CURLOPT_POST, 1L); 
+		pooh.body_size = 0;
+		
+		/* get verbose debug output please */   
+		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);  
+
+		/* 
+		  If you use POST to a HTTP 1.1 server, you can send data without knowing 
+		  the size before starting the POST if you use chunked encoding. You 
+		  enable this by adding a header like "Transfer-Encoding: chunked" with 
+		  CURLOPT_HTTPHEADER. With HTTP 1.0 or without chunked transfer, you must 
+		  specify the size in the request. 
+		*/   
+		/* Set the expected POST size. If you want to POST large amounts of data, 
+		   consider CURLOPT_POSTFIELDSIZE_LARGE */   
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE,pooh.body_size); 
+
+		//#ifdef DISABLE_EXPECT  
+		/* 
+		  Using POST with HTTP 1.1 implies the use of a "Expect: 100-continue" 
+		  header.  You can disable this header with CURLOPT_HTTPHEADER as usual. 
+		  NOTE: if you want chunked transfer too, you need to combine these two 
+		  since you can only set one list of headers with CURLOPT_HTTPHEADER. */   
+
+		/* A less good option would be to enforce HTTP 1.0, but that might also 
+		   have other implications. */   
+		if(header!=NULL)
+		{  
+		  //struct curl_slist *chunk = NULL;  
+		  chunk = curl_slist_append(chunk, header);
+		  //chunk = curl_slist_append(chunk, "Content-Type: application/binary");
+		  //chunk = curl_slist_append(chunk, "Content-Type: audio/aiff");
+		  chunk = curl_slist_append(chunk, "Expect:");
+		  res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+		  /* use curl_slist_free_all() after the *perform() call to free this 
+		     list again */
+		}  
+		//#endif
+
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, copy_file); //设置下载数据的回调函数
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&rooh);   
+
+
+		curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
+		curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,0L);
+		
+		/* Perform the request, res will get the return code */   
+		res = curl_easy_perform(curl);
+		
+		curl_slist_free_all(chunk);
+		
+		/* Check for errors */   
+		if(res != CURLE_OK){
+			imlogE("curl_easy_perform() failed: %s\n",  
+			curl_easy_strerror(res)); 
+		}
+		else{
+			res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE , &retcode);
+			if(res == CURLE_OK){
+				ret = 0;
+			}else{
+				imlogE("Error %ld\n",retcode);
+			}
+		}
+		/* always cleanup */   
+		curl_easy_cleanup(curl);  
+	}  
+	curl_global_cleanup();
+	return ret;
+}

@@ -55,6 +55,10 @@ Function List:
 #include "global_var.h"
 #include "eeprom_tool.h"
 
+uint16_t global_fw_version;
+int global_fw_size;
+int global_fw_crc;
+
 char domain[32]={0};
 /* get from server.needed other server interface */
 char access_key[ACCESS_KEY_SIZE+1]={0};
@@ -77,21 +81,51 @@ float I_threshol = 0.0;
 
 static uint8_t global_adc_frq;
 
+void global_setFWsize(int size)
+{
+	global_fw_size = size;
+}
+
+int global_getFWsize()
+{
+	return global_fw_size;
+}
+
+void global_setFWChecksum(int check_sum)
+{
+	global_fw_crc = check_sum;
+}
+
+int global_getFWChecksum()
+{
+	return global_fw_crc;
+}
+
 void global_setdomain(char *url)
 {
 	strcpy(domain,url);
 }
 
+void global_setFwVersion(uint8_t * version)
+{
+	global_fw_version = ((version[1]<<8)&0xffff)|(version[0]&0xffff);
+	imlogV("global_setFwVersion fw_version=%d",global_fw_version);
+}
+
 uint16_t global_getFWversion()
+{
+	return global_fw_version;
+}
+
+uint16_t global_getFWversionDefault()
 {
 	uint16_t major=(FW_VERSION_MAJOR<<12)&0xffff;
 	uint16_t minor=(FW_VERSION_MINOR<<8)&0xffff;
 	uint16_t revision=(FW_VERSION_REVISION<<4)&0xffff;
 	uint16_t host=FW_VERSION_HOST&0xffff;
-	
-	return major|minor|revision|host;
+	global_fw_version = major|minor|revision|host;
+	return global_fw_version;
 }
-
 
 void global_setAdcFrq(uint8_t hz)
 {
@@ -123,6 +157,17 @@ char * global_getMac()
 {
 	return mac_addr;
 }
+
+void global_setFwUrl(char *fw_domain)
+{
+	char buf[256]={0x0};
+	strcpy(buf,GLOBAL_URL_HEADER);
+	strcat(buf,fw_domain);
+	strcat(buf,GLOBAL_URL_CONTENT);
+	strcat(buf,GLOBAL_URL_FW);
+	strcpy(cloud_url[ICLOUD_URL_FW],buf);
+}
+
 
 void global_setUrl(enum ICOULD_URL index)
 {

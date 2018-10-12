@@ -45,6 +45,35 @@ char *imcloud_cmd_t[IMCLOUD_CMD_MAX]={
 		
 };
 
+/*hex string*/
+uint32_t HEX2int(char *pcBCD)
+{
+	char acBCD[8] = {0};
+	uint32_t nReval = 0;
+	int nPower = 1;
+	int nStrlen = strlen(pcBCD);
+	
+	memcpy(acBCD, pcBCD, nStrlen);
+	while(nStrlen--)
+	{
+		if(acBCD[nStrlen] >= 'A' && acBCD[nStrlen] <= 'F')
+		{
+			nReval += (acBCD[nStrlen] - 55)*nPower;
+		}
+		else if(acBCD[nStrlen] >= 'a' && acBCD[nStrlen] <= 'f')
+		{
+			nReval += (acBCD[nStrlen] - 87)*nPower;
+		}
+		else
+		{
+			nReval += (acBCD[nStrlen] - '0')*nPower;
+		}
+		nPower *= 16;
+	}
+	return nReval;
+}
+
+
 /*************************************************
 Function: CloudAccessKeyHandle
 Description: Parsing the data from server response
@@ -151,6 +180,8 @@ int GenerateInfoData(char * postdata)
 	struct json_object *infor_object = NULL;
 	infor_object = json_object_new_object();
 	struct timeval tv;
+	int fw_version=global_getFWversion();
+	
     gettimeofday(&tv,NULL);
     
 	if (NULL == infor_object)
@@ -170,7 +201,7 @@ int GenerateInfoData(char * postdata)
     
 	json_object_object_add(infor_object, "manufacturer", json_object_new_string("INTEL"));
 	json_object_object_add(infor_object, "model_number", json_object_new_string("FM3JP"));
-	json_object_object_add(infor_object, "fw_version", json_object_new_int(4096));
+	json_object_object_add(infor_object, "fw_version", json_object_new_int(fw_version));
 	json_object_object_add(infor_object, "booted_at", json_object_new_int(tv.tv_sec));
 	json_object_object_add(infor_object, "hw_version", json_object_new_int(4096));
 	//strcpy(postdata,json_object_to_json_string(infor_object));
@@ -251,14 +282,16 @@ int CloudInfoHandle(char * buf){
 		struct json_object *result_object = NULL;
 		char code[64]={0x0};
 		json_object_object_get_ex(infor_object, IMCLOUD_SERVER_CODE,&result_object); 
-		strcpy(code,json_object_get_string(result_object));     
-		imlogE("%s",code);
-		if(strcmp(code,SERVER_INVALID_KEY)==0){
-			ret = INVALID_KEY;
+		if(result_object!=NULL){
+			strcpy(code,json_object_get_string(result_object));     
+			imlogE("%s",code);
+			if(strcmp(code,SERVER_INVALID_KEY)==0){
+				ret = INVALID_KEY;
+			}
+			
+			json_object_object_get_ex(infor_object, IMCLOUD_SERVER_MESSAGE,&result_object);        
+			imlogE("%s",json_object_get_string(result_object));
 		}
-		
-		json_object_object_get_ex(infor_object, IMCLOUD_SERVER_MESSAGE,&result_object);        
-		imlogE("%s",json_object_get_string(result_object));
 		json_object_put(result_object);//free
 		
 	}
@@ -311,7 +344,7 @@ int CloudDataHandle(char * buf){
 		}else if(cmd==IMCLOUD_CMD_FW_UPDATE){
 			struct json_object *result_object = NULL; 
 			int version;
-			char domain[128]={0x0};
+			char url[32]={0x0};
 			char tmp[16]={0x0};
 			//int checksum=0;
 			int size=0;
@@ -325,20 +358,25 @@ int CloudDataHandle(char * buf){
 			
 			json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_DOMAIN_CONTENT,&result_object);	
 			if(result_object!=NULL){
-				strcpy(domain,json_object_get_string(request_object));
+				strcpy(url,json_object_get_string(request_object));
 				json_object_put(result_object);//free
+				global_setFwUrl(url);
 			}
 			
 			json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_CHECKSUM_CONTENT,&result_object);
 			if(result_object!=NULL){
+				int sum=0;
 				strcpy(tmp,json_object_get_string(request_object));
 				json_object_put(result_object);//free
+				sum = HEX2int(tmp);
+				global_setFWChecksum(sum);
 			}
 			
 			json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_SIZE_CONTENT,&result_object);
 			if(result_object!=NULL){
 				size = json_object_get_int(result_object);
 				json_object_put(result_object);//free 
+				global_setFWsize(size);
 			}
 			json_object_put(result_object);//free 
 			imlogV("fw size=%d",size);

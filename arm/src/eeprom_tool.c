@@ -432,11 +432,21 @@ unsigned int U8StoU16(unsigned char* buffer){
 
 void eeprom_set_accesskey(char * access_key)
 {
-	u8 buf[ACCESS_KEY_SIZE+EEPROM_WRITE_OFFSET];
+	u8 buf[ACCESS_KEY_SIZE+EEPROM_WRITE_OFFSET]={0x0};
 	i2c_path("/dev/i2c-0");
 	imlogV("eeprom_set_accesskey :%s",access_key);
 	memcpy(buf+EEPROM_WRITE_OFFSET,access_key,ACCESS_KEY_SIZE);
 	write_data(ACCESS_KEY_ADDR, (u8 *)buf, ACCESS_KEY_SIZE);
+	i2c_close_exit();;
+}
+
+void eeprom_set_fw_version(uint16_t version)
+{
+	u8 buf[ADC_VERSION_SIZE+EEPROM_WRITE_OFFSET]={0x0};
+	i2c_path("/dev/i2c-0");
+	imlogV("eeprom_set_fw_version :%d",version);
+	memcpy(buf+EEPROM_WRITE_OFFSET,&version,sizeof(version));
+	write_data(FW_VERSION_ADDR, (u8 *)buf, ACCESS_KEY_SIZE);
 	i2c_close_exit();;
 }
 
@@ -447,8 +457,8 @@ int im_init_e2prom_data()
 	uint8_t  hw_version[ADC_VERSION_SIZE+1]={0x0};
 	uint8_t  fpga_version[ADC_VERSION_SIZE+1]={0x0};
 	uint8_t  fw_version[ADC_VERSION_SIZE+1]={0x0};
-	uint8_t  threshol[ADC_THRESHOL_SIZE];
-	char  access_key[ACCESS_KEY_SIZE+1];
+	uint8_t  threshol[ADC_THRESHOL_SIZE]={0x0};
+	char  keys[ACCESS_KEY_SIZE+1]={0x0};
 	float I_threshol,V_threshol;
 	uint16_t igain=0;
 	uint16_t vgain=0; 
@@ -470,7 +480,22 @@ int im_init_e2prom_data()
 	imlogV("FPGA=%s",hw_version);	
 	
 	read_data(FW_VERSION_ADDR, (uint8_t *)fw_version, ADC_VERSION_SIZE);
-	imlogV("FW=%s",fw_version);	
+	global_setFwVersion(fw_version);
+	
+	/*
+	if((fw_version[0]==0xff&&fw_version[1]==0xff)||
+		(fw_version[0]==0&&fw_version[1]==0)||
+		strcmp((char *)fw_version,"V10")==0){
+		u8 buf[ADC_VERSION_SIZE+EEPROM_WRITE_OFFSET]={0x0};
+		uint16_t version = 0;
+		global_setFWversionDefault();
+		version = global_getFWversion();
+		memcpy(buf+EEPROM_WRITE_OFFSET,&version,sizeof(version));
+		write_data(FW_VERSION_ADDR, (u8 *)buf, ADC_VERSION_SIZE);
+	}else{
+		global_setFwVersion(fw_version);
+	}
+	*/
 	
 	read_data(VGAIN_ADDR, (uint8_t *)&vgain, VGAIN_SIZE);
 	imlogV("vgain=%x",vgain);
@@ -490,10 +515,10 @@ int im_init_e2prom_data()
 	global_setIthreshol(I_threshol);
 	imlogV("I_threshol=%f",I_threshol);
 	
-	read_data(ACCESS_KEY_ADDR,(uint8_t *)access_key,ACCESS_KEY_SIZE);
-	imlogV("access_key=%s",access_key);
-	if(access_key[0]!=0xff){
-		global_setAccesskey((char *)access_key);
+	read_data(ACCESS_KEY_ADDR,(uint8_t *)keys,ACCESS_KEY_SIZE);
+	imlogV("access_key=%s",keys);
+	if(keys[0]!=0xff){
+		global_setAccesskey((char *)keys);
 	}
 	
 	i2c_close_exit();

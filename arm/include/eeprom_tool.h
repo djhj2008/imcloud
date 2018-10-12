@@ -60,6 +60,7 @@ typedef long long               s64;
 #define AC_LINE_FREQUENCY_60 60 //50Hz or 60Hz
 
 /* =================================== API ======================================= */
+void eeprom_set_fw_version(uint16_t version);
 int im_init_e2prom_data();
 void eeprom_set_accesskey(char * access_key);
 void read_eeprom(unsigned int offset, unsigned char* buffer, int len);

@@ -9,10 +9,10 @@
 
 #include "imcloud.h"
 
-#define FW_VERSION_MAJOR 		1
-#define FW_VERSION_MINOR 		0
-#define FW_VERSION_REVISION 	0
-#define FW_VERSION_HOST 		1
+#define FW_VERSION_MAJOR 		VERSION_MAJOR
+#define FW_VERSION_MINOR 		VERSION_MINOR
+#define FW_VERSION_REVISION 	VERSION_REVISION
+#define FW_VERSION_HOST 		VERSION_HOST
 
 #define GLOBAL_TOTALS_MIN 5
 #define GLOBAL_TOTALS_MAX 300
@@ -31,11 +31,12 @@
 
 /* =================================== API ======================================= */
 int global_getFWChecksum();
-void global_setFWChecksum(int check_sum);
+void global_setFWChecksum(uint32_t check_sum);
 int global_getFWsize();
 void global_setFWsize(int size);
 void global_setFwVersion(uint8_t * version);
 uint16_t global_getFWversion();
+void global_setFwVersionNormal(uint16_t  version);
 uint16_t global_getFWversionDefault();
 void global_setAdcFrq(uint8_t hz);
 uint8_t gloal_getAdcFrq();

@@ -1,5 +1,11 @@
 #!/bin/bash
-IMCLOUD_VERSION="1.0.1.release"
+FW_VERSION=true
+export VERSION_MAJOR=1
+export VERSION_MINOR=0
+export VERSION_REVISION=0
+export VERSION_HOST=1
+
+IMCLOUD_VERSION=${VERSION_MAJOR}"."${VERSION_MINOR}"."${VERSION_REVISION}"."${VERSION_HOST}."release"
 basepath=$(cd `dirname $0`; pwd)
 export PREFIX_CURL=${basepath}/libcurl
 export PREFIX_HIREDIS=${basepath}/libhiredis

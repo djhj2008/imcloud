@@ -354,22 +354,25 @@ int CloudDataHandle(char * buf){
 				version = json_object_get_int(result_object);
 				json_object_put(result_object);//free
 				imlogV("fw version=%d",version);
+				global_setFwVersionNormal((uint16_t)version);
 			}
 			
 			json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_DOMAIN_CONTENT,&result_object);	
 			if(result_object!=NULL){
-				strcpy(url,json_object_get_string(request_object));
+				strcpy(url,json_object_get_string(result_object));
 				json_object_put(result_object);//free
 				global_setFwUrl(url);
+				imlogV("fw domain=%s",url);
 			}
 			
 			json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_CHECKSUM_CONTENT,&result_object);
 			if(result_object!=NULL){
-				int sum=0;
-				strcpy(tmp,json_object_get_string(request_object));
+				uint32_t sum=0;
+				strcpy(tmp,json_object_get_string(result_object));
 				json_object_put(result_object);//free
 				sum = HEX2int(tmp);
 				global_setFWChecksum(sum);
+				imlogV("fw sum=%x",sum);
 			}
 			
 			json_object_object_get_ex(infor_object, IMCLOUD_DATA_FW_SIZE_CONTENT,&result_object);
@@ -377,9 +380,9 @@ int CloudDataHandle(char * buf){
 				size = json_object_get_int(result_object);
 				json_object_put(result_object);//free 
 				global_setFWsize(size);
+				imlogV("fw size=%d",size);
 			}
 			json_object_put(result_object);//free 
-			imlogV("fw size=%d",size);
 			
 			imlogV("CMD:FW Update.\n");
 			

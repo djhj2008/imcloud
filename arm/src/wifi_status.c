@@ -145,7 +145,7 @@ get_ifname(char *	name,	/* Where to store the name */
 	return(end);
 }
 
-int enum_devices(void)
+int enum_devices_base(char *file)
 {
 	char		buff[1024];
 	FILE *	fh;
@@ -154,7 +154,7 @@ int enum_devices(void)
 	int		flag = 0;
     	char*   p_get_data;
 	/* Check if /proc/net/wireless is available */
-	fh = fopen(PROC_NET_WIRELESS, "r");
+	fh = fopen(file, "r");
 
 	if(fh != NULL)
 	{
@@ -213,13 +213,26 @@ int enum_devices(void)
 	
 }
 
+int enum_devices(void)
+{
+	int	ret = -1;
+	
+	ret=enum_devices_base(PROC_NET_4G);
+	
+	if(ret < 0){
+		ret=enum_devices_base(PROC_NET_4G);
+	}
+	imlogV("CARD:%s",card_name);
+	return ret;
+	
+}
+
 int getLocalMac(char * mac_addr)  
 {  
 
     int sock_mac;  
     struct ifreq ifr_mac;  
-    //unsigned char first=0;
-    
+       
     sock_mac = socket(AF_INET, SOCK_STREAM, 0);  
     if (sock_mac == -1)  
     {  
@@ -228,7 +241,7 @@ int getLocalMac(char * mac_addr)
     }  
   
     memset(&ifr_mac, 0, sizeof(ifr_mac));  
-    strncpy(ifr_mac.ifr_name, NETWORK_CARD_NAME, sizeof(ifr_mac.ifr_name) - 1);  
+    strncpy(ifr_mac.ifr_name, card_name, sizeof(ifr_mac.ifr_name) - 1);  
   
     if ((ioctl(sock_mac, SIOCGIFHWADDR, &ifr_mac)) < 0)  
     {  

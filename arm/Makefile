@@ -21,9 +21,11 @@ CFLAGS := -g -lm -O2 -Werror -Wall \
   -L../libssl-dev/lib \
   -L../libjson/lib \
   -L../plc_lib_intel \
-  -L../libhiredis/lib
-
-
+  -L../libhiredis/lib \
+  -DVERSION_MAJOR="${VERSION_MAJOR}" \
+  -DVERSION_MINOR="${VERSION_MINOR}" \
+  -DVERSION_REVISION="${VERSION_REVISION}" \
+  -DVERSION_HOST="${VERSION_HOST}"
 
 RM := rm -rf
 ELF ?= imcloud

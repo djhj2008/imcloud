@@ -385,7 +385,7 @@ void *sysInputScan(void *arg)
         return NULL;
     }
 
-    while(1)  
+    while(imcloud_status==IMCOULD_DATA)  
     {
         l_ret = lseek(dev_fd, 0, SEEK_SET);  
         l_ret = read(dev_fd, &ping_data, sizeof(ping_data));  
@@ -510,6 +510,7 @@ void *sysInputScan(void *arg)
     }
     close(dev_fd); 
       
+	imlogV("exit sysInputScan.\n");      
     return NULL;  
       
 }  
@@ -593,6 +594,9 @@ void *senddata(void *arg)
 		}
 		imlogE("ImCloud Data Error.\n");
 		im_save_postdata(postdata,len);
+		im_redis_backup_dump();
+		free(postdata);
+		return NULL;
 		//im_backfile(filepath); 
 	}
 
@@ -792,12 +796,11 @@ int getConfig()
 
 void *testDownloadfw(void *arg)
 {
-	char *tmp="CF7A65C2";
-	uint32_t sum = HEX2int(tmp);
 	int version = global_getFWversion();
-	unsigned char Signature[HTTP_SIGNATURE_LEN]= {0x0};
 	char chunkstr[HTTP_CHUNK_HEAD_LEN]= {0x0};
 	char *mac = global_getMac();
+	char *key = global_getAccesskey();
+	int sum = global_getFWChecksum();
 	//char *url = "https://iot.xunrun.com.cn/app/Elook2.apk";
 	char *url = global_getUrl(ICLOUD_URL_FW);
 	struct stat file_stat;
@@ -809,12 +812,8 @@ void *testDownloadfw(void *arg)
 	int retry = HTTP_RETRY_MAX;
     uint32_t img_crc;  
     int download_flag = 0;
-    
-	GenerateSignature(mac,Signature);
-	global_setFWChecksum(sum);
-	global_setFWsize(44730);
-	
-	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac,Signature);
+
+	sprintf(chunkstr, "Authorization:imAuth %s:%s",  mac,key);
     imlogV("chunkstr: %s\n",  chunkstr);
 	
     //下面语句是建立默认文件夹的路径
@@ -841,17 +840,23 @@ void *testDownloadfw(void *arg)
             return NULL;
         }
     }
-    sprintf(src_path,"%s/fw_%d.zip",dirpath,version);
+    sprintf(src_path,"%s/fw_%d.tar",dirpath,version);
+    
+    im_delfile(src_path);
     
     while(retry>0){
-		im_delfile(src_path);
-		
 		fd = open(src_path,O_RDWR|O_CREAT,0744);
 		if(fd>0){
 			ret = ImHttpDownLoadFile(url,chunkstr,fd,file_size);
 		}
 		close(fd);
 		
+		if(ret ==0 ){
+			imcloud_status = IMCOULD_FW;	
+		}else{
+		   	//im_delfile(src_path);
+		   	break;
+		}
 		size = get_file_size(src_path);
 		
 		init_crc_table();  
@@ -860,12 +865,14 @@ void *testDownloadfw(void *arg)
 		if (ret < 0) {  
 			imlogE("CRC Error.");
 		}  
-		
+		imlogV("down load size=%d,crc=%x",size,img_crc);
+		imlogV("down load file_size=%d,crc=%x",file_size,sum);
 		if(size == file_size||img_crc==sum){
 			download_flag = 1;
 			retry=0;
 			break;
 		}
+		break;
 		retry--;
 	}
 	if(download_flag == 1){
@@ -929,6 +936,11 @@ int main(int arg, char *arc[])
 		goto Finish;
 	}
 	
+	if(enum_devices()!=0){
+		imlogE("WIFI error\n");  
+		goto Finish;
+	}
+	
 	if(getLocalMac(mac)<0){
 		imlogE("Network Error.\n");
 		goto Finish;
@@ -951,11 +963,6 @@ int main(int arg, char *arc[])
 		imlogV("adc7606 input device dir: %s%s\n", ADC_DEV_PATH_NAME, ADC_DEV_NAME);  
 	}
 	
-	if(enum_devices()!=0){
-		imlogE("WIFI error\n");  
-		goto Finish;
-	}
-
 	imlogE("access_key:%x",access_key[0]);
 	if(access_key[0]!=0){
 		key_status = KEY_STATUS_OK;
@@ -990,7 +997,8 @@ int main(int arg, char *arc[])
 		}else if(imcloud_status==IMCOULD_DATA){
 			if(adc_status==ADC_IDLE){
 				adc_status = ADC_START;
-				thpool_add_work(thpool, (void*)sysInputScan, NULL);
+				sysInputScan(NULL);
+				//thpool_add_work(thpool, (void*)sysInputScan, NULL);
 			}
 		}
 	}

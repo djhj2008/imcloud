@@ -9,9 +9,11 @@
 
 #define MY_VERSION      "1.0.1"
 #define PROC_NET_WIRELESS	"/proc/net/wireless"
+#define PROC_NET_4G			"/proc/net/dev"
 #define PROC_SIGNAL_LED		"/sys/class/leds/hps_led"
 //#define NETWORK_CARD_NAME	"enp4s0"
 #define NETWORK_CARD_NAME   "wlp1s0"
+#define NETWORK_4G_NAME   	"wwan0"
 
 /*
  *	Quality of the link
@@ -39,7 +41,6 @@ struct	iw_statistics
 {
 	uint16_t		status;		/* Status
 					 * - device dependent for now */
-
 	struct iw_quality	qual;		/* Quality of the link
 						 * (instant/mean/max) */
 	struct iw_discarded	discard;	/* Packet discarded counts */

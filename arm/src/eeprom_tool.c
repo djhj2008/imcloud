@@ -446,8 +446,8 @@ void eeprom_set_fw_version(uint16_t version)
 	i2c_path("/dev/i2c-0");
 	imlogV("eeprom_set_fw_version :%d",version);
 	memcpy(buf+EEPROM_WRITE_OFFSET,&version,sizeof(version));
-	write_data(FW_VERSION_ADDR, (u8 *)buf, ACCESS_KEY_SIZE);
-	i2c_close_exit();;
+	write_data(FW_VERSION_ADDR, (u8 *)buf, ADC_VERSION_SIZE);
+	i2c_close_exit();
 }
 
 int im_init_e2prom_data()

@@ -57,7 +57,7 @@ Function List:
 
 uint16_t global_fw_version;
 int global_fw_size;
-int global_fw_crc;
+uint32_t global_fw_crc;
 
 char domain[32]={0};
 /* get from server.needed other server interface */
@@ -91,7 +91,7 @@ int global_getFWsize()
 	return global_fw_size;
 }
 
-void global_setFWChecksum(int check_sum)
+void global_setFWChecksum(uint32_t check_sum)
 {
 	global_fw_crc = check_sum;
 }
@@ -110,6 +110,11 @@ void global_setFwVersion(uint8_t * version)
 {
 	global_fw_version = ((version[1]<<8)&0xffff)|(version[0]&0xffff);
 	imlogV("global_setFwVersion fw_version=%d",global_fw_version);
+}
+
+void global_setFwVersionNormal(uint16_t  version)
+{
+	global_fw_version = version;
 }
 
 uint16_t global_getFWversion()

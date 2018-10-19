@@ -41,6 +41,5 @@ size_t read_callback(void *ptr, size_t size, size_t nmemb, void *userp);
 size_t copy_data(void *ptr, size_t size, size_t nmemb, void *stream);
 int ImHttpPost(char *url,char* header,uint8_t * post_data,int data_len,char *rev_data);
 int ImHttpPostStr(char *url,char* header,uint8_t * post_data,int data_len,char *rev_data);
-int ImHttpPostStream(char *url,char* header,int first_time,int data_len,char *rev_data);
 int ImHttpDownLoadFile(char *url,char* header,int fd,int file_size);
 #endif

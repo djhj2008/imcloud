@@ -58,6 +58,11 @@ enum KEY_STATUS {
 	KEY_INVALID,
 };
 
+enum RESEND_STATUS {
+	RESEND_IDLE= 0,
+	RESEND_RESEND,
+};
+
 /* =================================== API ======================================= */
 int ImCloudData(uint8_t * data,int first_time,int len,int try);
 int ImCloudInfo();

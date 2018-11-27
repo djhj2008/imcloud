@@ -19,7 +19,7 @@
 /* =================================== API ======================================= */
 int im_redis_backup_dump();
 int im_redis_get_backup_len();
-int im_redis_pop_head();
+int im_redis_pop_head(char * name);
 int im_redis_get_list_head(char *file);
 int im_redis_backup_push(char * name);
 void redis_free();

@@ -65,6 +65,7 @@ threadpool thpool;
 int imcloud_status = IMCOULD_ACTIVATE;
 int adc_status = ADC_IDLE;
 int key_status = KEY_INVALID;
+int resend_status = RESEND_IDLE;
 
 /*************************************************
 Function: ImCloudData
@@ -129,12 +130,12 @@ int ImCloudData(uint8_t * data,int first_time,int len,int try)
 	
 	if(cmd == IMCLOUD_CMD_FW_UPDATE){
 		//TODO down firmware
-		thpool_add_work(thpool, (void*)testDownloadfw, NULL);
+		//thpool_add_work(thpool, (void*)testDownloadfw, NULL);
 	}else if(cmd < 0){
 		ret = cmd;
 	}
 	
-	imlogV("ImCloudData end.\n");
+	imlogV("ImCloudData end %d.\n",ret);
 	return ret;
 }
 
@@ -567,9 +568,10 @@ void *senddata(void *arg)
 		return NULL;
 	}
 	im_close(fd);
-	
+
 	sprintf(filepath,"%s/%s",DEFAULT_DIRPATH,filename);
 	len = 0;
+
 	postdata = GenerateWaveform(filepath,&len,&first_time,icount,vcount,totals,flag);
 	if(postdata!=NULL){
 		im_delfile(filepath);
@@ -586,7 +588,7 @@ void *senddata(void *arg)
 		return NULL;
 	}
 	
-	ret = ImCloudData(postdata,first_time,len,HTTP_RETRY_MAX);
+	ret = ImCloudData(postdata,first_time,len,HTTP_RETRY_NONE);
 	if(ret!=STATUS_OK){
 		if(ret == INVALID_KEY){
 			key_status = KEY_INVALID;
@@ -607,7 +609,7 @@ void *senddata(void *arg)
 		imlogE("resenddata KEY_INVALID.\n");
 		return NULL;
 	}
-	
+
 	return NULL;
 }
 
@@ -619,6 +621,13 @@ int resenddata()
 	int len;
 	uint32_t first_time=0;
 	int ret = 0;
+	
+	if(resend_status == RESEND_RESEND){
+		imlogV("resenddata busy.");
+		return ret;
+	}
+	
+	resend_status = RESEND_RESEND;
 	
 	backup_len = im_redis_get_backup_len();
 	
@@ -641,10 +650,10 @@ int resenddata()
 				imlogV("resenddata post len = %d \n",len);
 				imlogV("resenddata post first_time = %d \n",first_time);
 				imlogV("resenddata postdata = %x \n",postdata[0]);
-				ret = ImCloudData(postdata,first_time,len,HTTP_RETRY_MAX);
+				ret = ImCloudData(postdata,first_time,len,HTTP_RETRY_NONE);
 				if(ret==STATUS_OK){
 					im_delfile(file);
-					im_redis_pop_head();
+					im_redis_pop_head(name);
 					imlogE("ImCloud RESend Backup OK.\n");
 				}else{
 					if(ret == INVALID_KEY){
@@ -661,11 +670,14 @@ int resenddata()
 				free(postdata);
 			}else{
 				im_delfile(file);
-				im_redis_pop_head();
+				im_redis_pop_head(name);
 				imlogE("ImCloud backup File Error.\n");
 			}
 		}
 	}
+	
+	resend_status = RESEND_IDLE;
+	
 	return ret;
 }
 /*************************************************
@@ -809,7 +821,7 @@ void *testDownloadfw(void *arg)
 	char src_path[MAX_DIRPATH_LEN]={0x0};
 	int fd;
 	int size=0,file_size=global_getFWsize();
-	int retry = HTTP_RETRY_MAX;
+	int retry = HTTP_RETRY_NONE;
     uint32_t img_crc;  
     int download_flag = 0;
 
@@ -916,8 +928,10 @@ int main(int arg, char *arc[])
 	thpool = thpool_init(10);
 	char *access_key=global_getAccesskey();
 	uint16_t version = global_getFWversionDefault();
+	uint32_t date = FW_BUILD_DATE;
 	
 	imlogV("MAIN:VERAION:%d",global_getFWversion());
+	imlogV("BUILD DATE:%d",date);
 	eeprom_set_fw_version(version);
 		
 	led_init();

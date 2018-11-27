@@ -177,6 +177,8 @@ struct thpool_* thpool_init(int num_threads){
 int thpool_add_work(thpool_* thpool_p, void (*function_p)(void* arg), void* arg_p){
 	job* newjob;
 
+	imlogV("thpool_add_work,alive=%d,working=%d",thpool_p->num_threads_alive,thpool_p->num_threads_working);
+
 	newjob=(struct job*)malloc(sizeof(struct job));
 	if (newjob==NULL){
 		err("thpool_add_work(): Could not allocate memory for new job\n");
@@ -437,6 +439,8 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
 	pthread_mutex_lock(&jobqueue_p->rwmutex);
 	newjob->prev = NULL;
 
+	imlogV("jobqueue_push len=%d",jobqueue_p->len);
+
 	switch(jobqueue_p->len){
 
 		case 0:  /* if no jobs in queue */
@@ -450,7 +454,7 @@ static void jobqueue_push(jobqueue* jobqueue_p, struct job* newjob){
 
 	}
 	jobqueue_p->len++;
-
+	
 	bsem_post(jobqueue_p->has_jobs);
 	pthread_mutex_unlock(&jobqueue_p->rwmutex);
 }

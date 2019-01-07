@@ -50,7 +50,7 @@ typedef long long               s64;
 #define ADC_THRESHOL_SIZE	2
 
 #define VGAIN_ADDR 			0x3c
-#define VGAIN_SIZE			2		
+#define VGAIN_SIZE			2
 #define IGAIN_ADDR 			0x3e
 #define IGAIN_SIZE			2	
 

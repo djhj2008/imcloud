@@ -7,7 +7,7 @@
 #ifndef __IM_CONFIG_H__
 #define __IM_CONFIG_H__
 
-#define FRAMES_GROUP_MAX 300
+#define FRAMES_GROUP_MAX 900
 #define SAMPLES_FRAME 64
 #define ADC_SAMPLE_CHANNEL 6 //driver adc channel count
 

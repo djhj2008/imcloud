@@ -23,17 +23,14 @@
 #include "im_log.h"
 #include "thpool.h"
 
+
 #ifdef THPOOL_DEBUG
 #define THPOOL_DEBUG 1
 #else
 #define THPOOL_DEBUG 0
 #endif
 
-#if !defined(DISABLE_PRINT) || defined(THPOOL_DEBUG)
 #define err(str) imlogE(str)
-#else
-#define err(str)
-#endif
 
 static volatile int threads_keepalive;
 static volatile int threads_on_hold;

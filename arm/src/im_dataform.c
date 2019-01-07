@@ -226,11 +226,11 @@ uint8_t * GenerateWaveform(char * file,int *len ,uint32_t * first_time,int ichan
 			
 			for(j=0;j<PLC_FRAMES_PER_GROUP_MAX;j++){
 				int w1=0,w2=0,w3=0,w4=0;
-				imlogV("w1=%f w2=%f w3=%f w4=%f\n",
-				waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w1,
-				waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w2,
-				waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w3,
-				waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w4);
+				//imlogV("w1=%f w2=%f w3=%f w4=%f\n",
+				//waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w1,
+				//waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w2,
+				//waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w3,
+				//waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w4);
 				if((flag&0x01)==0x01){
 					w1 = htonl((int)htomf(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w1));
 					memcpy(postdata+index,&w1,sizeof(uint32_t));
@@ -279,11 +279,11 @@ uint8_t * GenerateWaveform(char * file,int *len ,uint32_t * first_time,int ichan
 			
 			for(j=0;j<remaining;j++){
 				int w1=0,w2=0,w3=0,w4=0;
-				imlogV("w1=%f w2=%f w3=%f w4=%f\n",
-				waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w1,
-				waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w2,
-				waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w3,
-				waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w4);
+				//imlogV("w1=%f w2=%f w3=%f w4=%f\n",
+				//waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w1,
+				//waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w2,
+				//waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w3,
+				//waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w4);
 				if((flag&0x01)==0x01){
 					w1 = htonl((int)htomf(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].w1));
 					memcpy(postdata+index,&w1,sizeof(uint32_t));
@@ -304,7 +304,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,uint32_t * first_time,int ichan
 					memcpy(postdata+index,&w4,sizeof(uint32_t));
 					index += sizeof(float);	
 				}
-				imlogV("w1=%d w2=%d w3=%d w4=%d\n",htonl(w1),htonl(w2),htonl(w3),htonl(w4));
+				//imlogV("w1=%d w2=%d w3=%d w4=%d\n",htonl(w1),htonl(w2),htonl(w3),htonl(w4));
 			}
 		
 			imlogV("index wat end: %d\n", index);

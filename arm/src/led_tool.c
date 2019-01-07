@@ -58,7 +58,7 @@ int led_ctrl_ADC7606_ct(int index,int on_off)
 
 int led_ctrl_ADC7606_ct_direction(int index,int on_off)
 {
-	imlogV("LED %d : %d %d",index,adc_led[index],on_off);
+	//imlogV("LED %d : %d %d",index,adc_led[index],on_off);
     
     /*
     if(on_off==adc_led[index]){

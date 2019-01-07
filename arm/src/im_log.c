@@ -31,7 +31,7 @@ int debug_level = 1;
 void setDebugOnOff(int debug_on)
 {
 	debug_level = debug_on;
-	printf("setDebugOnOff:%d",debug_on);
+	printf("setDebugOnOff:%d \n",debug_on);
 }
 
 

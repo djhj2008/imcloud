@@ -333,7 +333,6 @@ int16_t htomI(int16_t i)
 void *sysInputScan(void *arg)
 {  
     int l_ret = -1;  
-    int i = 0;  
     int ch = 0;
     int sample = 0;     
     int dev_fd  = 0;
@@ -349,7 +348,7 @@ void *sysInputScan(void *arg)
 	float ch_adc=0;
     char devName[128];
 	float vc=0;
-	int totals=0,n_totals=0;
+	int totals=0;
 	uint16_t vgain = global_getVgain();
 	uint16_t igain = global_getIgain();
 	float vgain_f = short2float(vgain);
@@ -358,6 +357,7 @@ void *sysInputScan(void *arg)
 	float I_threshol = global_getIthreshol();
 
 	if(adc_status!=ADC_START){
+		imlogE("sysInputScan adc_status=%d \n",adc_status);
 		return NULL;
 	}
 
@@ -401,9 +401,7 @@ void *sysInputScan(void *arg)
 			}else{
 				imlogV("index: %d time stamp: %d \n",index, waveform_t[index].time_stamp);
 			}
-			for(i = 0; i< 2; i++){
-				//imlogV("pnumber[%d]= 0x%x\n", i, ping_data.pnumber[i]);
-			}
+
 			for(ch = 0; ch < ADC_SAMPLE_CHANNEL; ch++){
 				int flag = ch % 2;
 
@@ -456,11 +454,8 @@ void *sysInputScan(void *arg)
 			}
 			
 
-
-
-
 			for(ch=WAVE_L1_CHANNEL;ch<=WAVE_L4_CHANNEL;ch++){
-				imlogV("ia[%d] =%f ",ch,i_sum[ch]/SAMPLES_FRAME);
+				//imlogV("ia[%d] =%f ",ch,i_sum[ch]/SAMPLES_FRAME);
 				if((v_sum/SAMPLES_FRAME>=V_threshol)
 						&&(i_sum[ch]/SAMPLES_FRAME>=I_threshol)
 						&&(w_sum[ch]/SAMPLES_FRAME > LED_ADC_DIRECTION_POWER)
@@ -479,25 +474,40 @@ void *sysInputScan(void *arg)
 			waveform_t[index].rssi=get_wifi_info();
 			
 			totals = global_getTotals();
-			n_totals = global_getNextTotals();
-			imlogV("global_totals = %d next_totals =%d rssi = %d v=%f w1 = %f w2 = %f w3 = %f w4 = %f\n",totals, n_totals,waveform_t[index].rssi,v_sum/SAMPLES_FRAME,waveform_t[index].w1,waveform_t[index].w2,waveform_t[index].w3,waveform_t[index].w4);
+			//n_totals = global_getNextTotals();
+			//imlogV("global_totals = %d next_totals =%d rssi = %d v=%f w1 = %f w2 = %f w3 = %f w4 = %f\n",totals, n_totals,waveform_t[index].rssi,v_sum/SAMPLES_FRAME,waveform_t[index].w1,waveform_t[index].w2,waveform_t[index].w3,waveform_t[index].w4);
 			
 			//global_startNextTotals(); //change when next package
 			
 			index++;
 			if(index == totals){
-				//imlogV("wave_size:%d,otherform_t:%d \n",sizeof(waveform_t),sizeof(otherform_t));
+				int th_num = thpool_num_threads_working(thpool);
 				memcpy(global_waveform,waveform_t,sizeof(struct waveform)*totals);
 				memset(waveform_t,0,sizeof(struct waveform)*FRAMES_GROUP_MAX);
-				thpool_add_work(thpool, (void*)senddata, NULL); 
+				if(th_num<IM_SEND_THREAD_MAX){
+					thpool_add_work(thpool, (void*)senddata, NULL); 
+				}else{
+					//error service restart.
+					char *exec_argv[] = { "restart", "imcloud", 0 };
+					execv("/bin/systemctl", exec_argv);
+					imlogV("CMD:Reboot.\n");
+				}
 				index = 0;
 
 			}else if(index > totals){
 				int remaining = index-totals;
+				int th_num = thpool_num_threads_working(thpool);
 				imlogV("remaining:%d \n",remaining);
 				memcpy(global_waveform,waveform_t,sizeof(struct waveform)*totals);
 				memcpy(waveform_t,&waveform_t[totals],sizeof(struct waveform)*remaining);
-				thpool_add_work(thpool, (void*)senddata, NULL);
+				if(th_num<IM_SEND_THREAD_MAX){
+					thpool_add_work(thpool, (void*)senddata, NULL); 
+				}else{
+					//error service restart.
+					char *exec_argv[] = { "restart", "imcloud", 0 };
+					execv("/bin/systemctl", exec_argv);
+					imlogV("CMD:Reboot.\n");
+				}
 				index -= totals;
 			}
 		}
@@ -552,13 +562,13 @@ void *senddata(void *arg)
 	uint32_t first_time=0;
 	int ret;
 	
+	imlogV("senddata task().\n");
+	
 	get_filename(filename);
 	
 	global_startNextTotals();
 	
 	flag = global_getIchFlag();
-	
-	imlogV("task().\n");
 	 
 	fd = im_openfile(filename);
 	if(fd > 0){
@@ -623,7 +633,7 @@ int resenddata()
 	int ret = 0;
 	
 	if(resend_status == RESEND_RESEND){
-		imlogV("resenddata busy.");
+		imlogE("resenddata busy.");
 		return ret;
 	}
 	
@@ -925,7 +935,6 @@ int main(int arg, char *arc[])
 {
 	int ret = 0;
 	char mac[MAC_LEN+1]= {0x0};
-	thpool = thpool_init(10);
 	char *access_key=global_getAccesskey();
 	uint16_t version = global_getFWversionDefault();
 	uint32_t date = FW_BUILD_DATE;
@@ -933,6 +942,7 @@ int main(int arg, char *arc[])
 	imlogV("MAIN:VERAION:%d",global_getFWversion());
 	imlogV("BUILD DATE:%d",date);
 	eeprom_set_fw_version(version);
+	thpool = thpool_init(IM_SEND_THREAD_MAX);
 		
 	led_init();
 	

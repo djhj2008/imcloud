@@ -134,12 +134,12 @@ int im_redis_get_list_head(char *file)
 	sprintf(cmd,"LINDEX %s 0",IM_BACKUP_KEY_NAME);
     r = (redisReply *)redisCommand(g_ctx, cmd);
     if (NULL == r) {
-        printf("Error[%d:%s]", g_ctx->err, g_ctx->errstr);
+        imlogE("Error[%d:%s]", g_ctx->err, g_ctx->errstr);
         return ret;
     }
     imlogV("type: %d\n", r->type); 
     if(r->type == REDIS_REPLY_STRING){
-        printf("reply->str:%s\n", r->str);
+        imlogV("reply->str:%s\n", r->str);
         strncpy(file,r->str,r->len);
         ret = 0;
 	}
@@ -176,7 +176,7 @@ int im_redis_get_backup_len()
     }
     imlogV("type: %d\n", r->type); 
     if(r->type == REDIS_REPLY_INTEGER){
-        imlogE("reply->integer:%lld\n", r->integer);
+        imlogV("reply->integer:%lld\n", r->integer);
         len = r->integer;
 	}
     /*release reply and context */

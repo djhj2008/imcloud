@@ -290,7 +290,7 @@ int ImHttpPost(char *url,char* header,uint8_t * post_data,int data_len,char *rev
 			pooh.body_size = 0;
 		}
 		/* get verbose debug output please */   
-		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);  
+		//curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 
 		/* 
 		  If you use POST to a HTTP 1.1 server, you can send data without knowing 

@@ -7,6 +7,7 @@
 #ifndef __IMCLOUD_H__
 #define __IMCLOUD_H__
 
+#define IM_SEND_THREAD_MAX		10
 
 #define EEPROM_WRITE_OFFSET 	2
 #define ACCESS_KEY_SIZE 		64

@@ -12,7 +12,7 @@
 #define REDIS_HOST        "127.0.0.1"
 #define REDIS_PORT        6379
 
-#define IM_BACKUP_WAVE_MAX	1000
+#define IM_BACKUP_WAVE_MAX	100
 #define IM_BACKUP_KEY_NAME  "wave_backup"
 
 

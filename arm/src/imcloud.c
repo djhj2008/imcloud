@@ -1001,7 +1001,7 @@ int main(int arg, char *arc[])
 		if(imcloud_status==IMCOULD_ACTIVATE){
 			if(GetAcessKey()<STATUS_OK){
 				imlogE("GetAcessKey\n"); 
-				//sleep(delay);
+				sleep(1000);
 			}else{
 				key_status = KEY_STATUS_OK;
 				imcloud_status = IMCOULD_INFO;

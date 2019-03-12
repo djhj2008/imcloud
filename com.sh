@@ -4,7 +4,7 @@ export VERSION_MAJOR=1
 export VERSION_MINOR=0
 export VERSION_REVISION=0
 export VERSION_HOST=1
-export BUILD_DATE=$(date "+%m%d%k%M")
+export BUILD_DATE=$(date "+%y%m%d%k%M")
 
 IMCLOUD_VERSION=${VERSION_MAJOR}"."${VERSION_MINOR}"."${VERSION_REVISION}"."${VERSION_HOST}"."${BUILD_DATE}".release"
 basepath=$(cd `dirname $0`; pwd)

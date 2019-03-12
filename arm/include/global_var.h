@@ -19,11 +19,10 @@
 #define GLOBAL_TOTALS_MAX 300
 #define GLOBAL_TOTALS_DEFAULT 15
 
-//#define GLOBAL_DOMAIN_DEFAULT "iot.xunrun.com.cn"
-#define GLOBAL_DOMAIN_DEFAULT "35.229.162.114"
+#define GLOBAL_DOMAIN_DEFAULT "api-asia.informetis.com"
+//#define GLOBAL_DOMAIN_DEFAULT "35.229.162.114"
 //#define GLOBAL_DOMAIN_DEFAULT "35.229.161.137"
 #define GLOBAL_URL_HEADER "https://"
-//#define GLOBAL_URL_CONTENT "/base/index.php/Home/time"
 #define GLOBAL_URL_CONTENT "/imcloud/meter"
 #define GLOBAL_URL_ACCESSKEY "/activate/"
 #define GLOBAL_URL_INFO "/info/"

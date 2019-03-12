@@ -83,9 +83,10 @@ void GenerateSAK(char * mac,  unsigned char * output)
 {
 	char txt[128]={0x0};
 	unsigned char  hash[SHA256_DIGEST_LENGTH];
-	char *sak_seed="tnjJExP3IhDEAEyzBd+Fo6GF3l4c4y4j3IgduB4i";
+	//char *sak_seed="tnjJExP3IhDEAEyzBd+Fo6GF3l4c4y4j3IgduB4i";
 	//char *sak_seed="1234567890123456789012345678901234567890";
 	//int i=0;
+	char *sak_seed="SO5oWyROG/7DLl2IIC+9RCuV7KFFIWXAfr1TuEor";
 	
 	sprintf(txt,"%s:%s",mac,sak_seed);
 	imlogV("generateSAK:txt=%s\n",txt);

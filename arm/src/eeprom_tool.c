@@ -458,7 +458,12 @@ int im_init_e2prom_data()
 	uint8_t  fpga_version[ADC_VERSION_SIZE+1]={0x0};
 	uint8_t  fw_version[ADC_VERSION_SIZE+1]={0x0};
 	uint8_t  threshol[ADC_THRESHOL_SIZE]={0x0};
+	uint8_t  uuid[UUID_SIZE+1]={0x0};
+	//uint8_t  mac[MAC_SIZE+1]={0x0};
+	
 	char  keys[ACCESS_KEY_SIZE+1]={0x0};
+	//char  sak[SAK_SEED_SIZE+1]={0x0};
+	//char  url[DOMAIN_SIZE+1]={0x0};
 	float I_threshol,V_threshol;
 	uint16_t igain=0;
 	uint16_t vgain=0; 
@@ -514,6 +519,46 @@ int im_init_e2prom_data()
 	I_threshol = U8StoU16(threshol) / 1000.0;
 	global_setIthreshol(I_threshol);
 	imlogV("I_threshol=%f",I_threshol);
+	
+	/*
+	read_data(SAK_SEED_ADDR,(uint8_t *)sak,SAK_SEED_SIZE);
+	imlogV("sak=%s",sak);
+	if(sak[0]!=0xff){
+		global_setSAK((char *)sak);
+	}
+	
+	read_data(DOMAIN_ADDR,(uint8_t *)url,DOMAIN_SIZE);
+	imlogV("url=%s",url);
+	if(url[0]!=0xff&&strlen(url)>3){
+		global_setdomain((char *)url);
+	}else{
+		global_setdomain(GLOBAL_DOMAIN_DEFAULT);
+	}
+
+	global_setUrl(ICLOUD_URL_ACTIVATE);
+	global_setUrl(ICLOUD_URL_INFO);
+	global_setUrl(ICLOUD_URL_DATA);
+	global_setUrl(ICLOUD_URL_FW);
+
+	imlogV("URL = %s\n",global_getUrl(ICLOUD_URL_ACTIVATE));
+	imlogV("URL = %s\n",global_getUrl(ICLOUD_URL_INFO));
+	imlogV("URL = %s\n",global_getUrl(ICLOUD_URL_DATA));
+	imlogV("URL = %s\n",global_getUrl(ICLOUD_URL_FW));
+	*/
+	
+	read_data(UUID_ADDR,(uint8_t *)uuid,UUID_SIZE);
+	imlogV("uuid=%s",uuid);
+	if(uuid[0]!=0xff&&uuid[0]!=0){
+		global_setUUID((char *)uuid);
+		global_setMac((char *)uuid);
+		if(uuid[0]=='M'){
+			imlogV("LTE MODE.");
+			global_setWifiMode(0);//3g lte
+		}else{
+			imlogV("WIFI MODE.");
+			global_setWifiMode(1);//wifi
+		}
+	}
 	
 	read_data(ACCESS_KEY_ADDR,(uint8_t *)keys,ACCESS_KEY_SIZE);
 	imlogV("access_key=%s",keys);

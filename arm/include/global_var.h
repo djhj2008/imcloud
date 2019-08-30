@@ -70,4 +70,10 @@ void global_setVthreshol(float vthreshol);
 void global_setIthreshol(float ithreshol);
 void global_setdomain(char *url);
 void global_setFwUrl(char *fw_domain);
+char *global_getSAK();
+void global_setSAK(char *sak);
+char *global_getUUID();
+void global_setUUID(char * uuid);
+int global_getWifiMode();
+void global_setWifiMode(int mode);
 #endif

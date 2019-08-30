@@ -112,6 +112,8 @@ int CloudAccessKeyHandle(char * buf){
 			eeprom_set_accesskey(key);
 			json_object_put(result_object);//free
 			ret = STATUS_OK;
+		}else{
+			imlogE("%s",buf);
 		}
 	}else{
 		struct json_object *result_object = NULL;

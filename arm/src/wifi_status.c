@@ -187,14 +187,15 @@ int enum_devices_base(char *file)
 			/* Extract interface name */
 			s = get_ifname(card_name, sizeof(card_name), buff);
 			//printf("WiFi Card_Name = %s\n", card_name);
-			flag = 1;
+			//flag = 1;
 
-			if(!s)
+			if(s&&strncmp(card_name,NETWORK_CARD_NAME,strlen(NETWORK_CARD_NAME))==0)
 			{
-				ret = -1;
+				flag = 1;
+				ret = 0;
 				goto done;
 			} else {
-				ret = 0;
+				ret = -1;
 				goto done;
 			}
 
@@ -217,7 +218,7 @@ int enum_devices(void)
 {
 	int	ret = -1;
 	
-	ret=enum_devices_base(PROC_NET_4G);
+	ret=enum_devices_base(PROC_NET_WIRELESS);
 	
 	if(ret < 0){
 		ret=enum_devices_base(PROC_NET_4G);
@@ -241,7 +242,7 @@ int getLocalMac(char * mac_addr)
     }  
   
     memset(&ifr_mac, 0, sizeof(ifr_mac));  
-    strncpy(ifr_mac.ifr_name, card_name, sizeof(ifr_mac.ifr_name) - 1);  
+    strncpy(ifr_mac.ifr_name, NETWORK_CARD_NAME, sizeof(ifr_mac.ifr_name) - 1);  
   
     if ((ioctl(sock_mac, SIOCGIFHWADDR, &ifr_mac)) < 0)  
     {  

@@ -174,10 +174,12 @@ uint8_t * GenerateWaveform(char * file,int *len ,uint32_t * first_time,int ichan
 	imlogV("flag : %d\n", data_header_t.flag );
 	imlogV("start_time : %d\n", data_header_t.start_time);
 	
+	/*
 	for(i=0;i<ucFramesPerGroup;i++){
-		//imlogV("index = %d rssi = %d w1 = %f w2 = %f \n", i,waveform_t[i].rssi,waveform_t[i].w1,waveform_t[i].w2);
-		//imlogV(" data v=%d l1=%d l2=%d\n",waveform_t[i].data[0],waveform_t[i].data[64],waveform_t[i].data[128]);	
+		imlogV("index = %d rssi = %d w1 = %f w2 = %f \n", i,waveform_t[i].rssi,waveform_t[i].w1,waveform_t[i].w2);
+		imlogV(" data v=%d l1=%d l2=%d\n",waveform_t[i].data[0],waveform_t[i].data[64],waveform_t[i].data[128]);	
 	}
+	*/
 
 	h_count = WAVE_FORM_HEAD_LEN;
 	

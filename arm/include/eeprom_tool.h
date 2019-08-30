@@ -54,6 +54,14 @@ typedef long long               s64;
 #define IGAIN_ADDR 			0x3e
 #define IGAIN_SIZE			2	
 
+#define SAK_SEED_ADDR		0x4c
+#define SAK_SEED_SIZE		40
+#define DOMAIN_ADDR			0x100
+#define DOMAIN_SIZE			32
+
+#define UUID_ADDR		0x1c4
+#define UUID_SIZE		16
+
 #define ACCESS_KEY_ADDR		0x161
 
 #define AC_LINE_FREQUENCY_50 50 //50Hz or 60Hz

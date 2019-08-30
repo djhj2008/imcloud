@@ -317,7 +317,7 @@ configure:6680: $? = 0
 configure:6759: arm-linux-gnueabihf-gcc -o conftest    conftest.c  >&5
 configure:6759: $? = 0
 configure:6838: arm-linux-gnueabihf-gcc -o conftest    conftest.c  >&5
-/tmp/cc3yH1i5.o: In function `main':
+/tmp/cctERiXx.o: In function `main':
 conftest.c:(.text+0x4): undefined reference to `inet_ntoa_r'
 collect2: error: ld returned 1 exit status
 configure:6838: $? = 1
@@ -2647,7 +2647,7 @@ configure:25410: WARNING: SSL disabled, you will not be able to use HTTPS, FTPS,
 configure:25412: WARNING: Use --with-ssl, --with-gnutls, --with-polarssl, --with-cyassl, --with-nss, --with-axtls, --with-winssl, or --with-darwinssl to address this.
 configure:25630: checking for library containing psl_builtin
 configure:25658: arm-linux-gnueabihf-gcc -o conftest -Werror-implicit-function-declaration -O2 -Wno-system-headers   conftest.c  >&5
-/tmp/ccmAYoXW.o: In function `main':
+/tmp/cchGalVa.o: In function `main':
 conftest.c:(.text.startup+0x2): undefined reference to `psl_builtin'
 collect2: error: ld returned 1 exit status
 configure:25658: $? = 1
@@ -13840,7 +13840,7 @@ configure:34622: checking for arpa/inet.h
 configure:34622: result: yes
 configure:34642: checking if inet_ntoa_r can be linked
 configure:34671: arm-linux-gnueabihf-gcc -o conftest -Werror-implicit-function-declaration -O2 -Wno-system-headers   conftest.c  >&5
-/tmp/ccE4heDq.o: In function `main':
+/tmp/ccejoUxX.o: In function `main':
 conftest.c:(.text.startup+0x2): undefined reference to `inet_ntoa_r'
 collect2: error: ld returned 1 exit status
 configure:34671: $? = 1
@@ -14370,7 +14370,7 @@ configure:35783: checking if ioctlsocket might be used
 configure:35872: result: no
 configure:35884: checking if IoctlSocket can be linked
 configure:35913: arm-linux-gnueabihf-gcc -o conftest -Werror-implicit-function-declaration -O2 -Wno-system-headers   conftest.c  >&5
-/tmp/ccyhiCkV.o: In function `main':
+/tmp/cczxzI9w.o: In function `main':
 conftest.c:(.text.startup+0x2): undefined reference to `IoctlSocket'
 collect2: error: ld returned 1 exit status
 configure:35913: $? = 1
@@ -14952,7 +14952,7 @@ configure:37413: checking for setjmp.h
 configure:37413: result: yes
 configure:37433: checking if sigsetjmp can be linked
 configure:37462: arm-linux-gnueabihf-gcc -o conftest -Werror-implicit-function-declaration -O2 -Wno-system-headers   conftest.c  >&5
-/tmp/ccGuU0Ox.o: In function `main':
+/tmp/cccz69Pc.o: In function `main':
 conftest.c:(.text.startup+0x2): undefined reference to `sigsetjmp'
 collect2: error: ld returned 1 exit status
 configure:37462: $? = 1
@@ -15250,7 +15250,7 @@ configure:38041: checking if strcasecmp might be used
 configure:38047: result: yes
 configure:38068: checking if strcmpi can be linked
 configure:38097: arm-linux-gnueabihf-gcc -o conftest -Werror-implicit-function-declaration -O2 -Wno-system-headers   conftest.c  >&5
-/tmp/cc3Ue4vX.o: In function `main':
+/tmp/ccpMHcgG.o: In function `main':
 conftest.c:(.text.startup+0x2): undefined reference to `strcmpi'
 collect2: error: ld returned 1 exit status
 configure:38097: $? = 1
@@ -16287,7 +16287,7 @@ configure:38715: checking if strerror_r might be used
 configure:38721: result: yes
 configure:38778: checking if stricmp can be linked
 configure:38807: arm-linux-gnueabihf-gcc -o conftest -Werror-implicit-function-declaration -O2 -Wno-system-headers   conftest.c  >&5
-/tmp/cc92bQQc.o: In function `main':
+/tmp/ccEew56U.o: In function `main':
 conftest.c:(.text.startup+0x2): undefined reference to `stricmp'
 collect2: error: ld returned 1 exit status
 configure:38807: $? = 1
@@ -16555,7 +16555,7 @@ configure:39049: checking if strncasecmp might be used
 configure:39055: result: yes
 configure:39076: checking if strncmpi can be linked
 configure:39105: arm-linux-gnueabihf-gcc -o conftest -Werror-implicit-function-declaration -O2 -Wno-system-headers   conftest.c  >&5
-/tmp/cc3uKPJj.o: In function `main':
+/tmp/ccp8Yt24.o: In function `main':
 conftest.c:(.text.startup+0x2): undefined reference to `strncmpi'
 collect2: error: ld returned 1 exit status
 configure:39105: $? = 1
@@ -16807,7 +16807,7 @@ configure:39198: checking if strncmpi might be used
 configure:39213: result: no
 configure:39225: checking if strnicmp can be linked
 configure:39254: arm-linux-gnueabihf-gcc -o conftest -Werror-implicit-function-declaration -O2 -Wno-system-headers   conftest.c  >&5
-/tmp/ccPD3gcp.o: In function `main':
+/tmp/cciAN8Y6.o: In function `main':
 conftest.c:(.text.startup+0x2): undefined reference to `strnicmp'
 collect2: error: ld returned 1 exit status
 configure:39254: $? = 1
@@ -17134,7 +17134,7 @@ configure:40039: $? = 0
 configure:40039: result: yes
 configure:40039: checking for getpass_r
 configure:40039: arm-linux-gnueabihf-gcc -o conftest -Werror-implicit-function-declaration -O2 -Wno-system-headers   conftest.c  >&5
-/tmp/cc0SEZeW.o: In function `main':
+/tmp/ccszHIGI.o: In function `main':
 conftest.c:(.text.startup+0x2): undefined reference to `getpass_r'
 collect2: error: ld returned 1 exit status
 configure:40039: $? = 1
@@ -17664,7 +17664,7 @@ configure:40039: $? = 0
 configure:40039: result: yes
 configure:40039: checking for mach_absolute_time
 configure:40039: arm-linux-gnueabihf-gcc -o conftest -Werror-implicit-function-declaration -O2 -Wno-system-headers   conftest.c  >&5
-/tmp/ccVWtJra.o: In function `main':
+/tmp/ccX7BuS2.o: In function `main':
 conftest.c:(.text.startup+0x2): undefined reference to `mach_absolute_time'
 collect2: error: ld returned 1 exit status
 configure:40039: $? = 1
@@ -18190,7 +18190,7 @@ configure:40039: $? = 0
 configure:40039: result: yes
 configure:40039: checking for setmode
 configure:40039: arm-linux-gnueabihf-gcc -o conftest -Werror-implicit-function-declaration -O2 -Wno-system-headers   conftest.c  >&5
-/tmp/ccjPqFBo.o: In function `main':
+/tmp/ccDxArdg.o: In function `main':
 conftest.c:(.text.startup+0x2): undefined reference to `setmode'
 collect2: error: ld returned 1 exit status
 configure:40039: $? = 1
@@ -28211,7 +28211,7 @@ configure:40915: checking for pthread.h
 configure:40915: result: yes
 configure:40922: checking for pthread_create
 configure:40922: arm-linux-gnueabihf-gcc -o conftest -Werror-implicit-function-declaration -O2 -Wno-system-headers   conftest.c  >&5
-/tmp/ccNDUdD1.o: In function `main':
+/tmp/ccAOlA6Y.o: In function `main':
 conftest.c:(.text.startup+0x2): undefined reference to `pthread_create'
 collect2: error: ld returned 1 exit status
 configure:40922: $? = 1

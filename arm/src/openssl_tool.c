@@ -19,6 +19,7 @@
 #include <openssl/hmac.h> 
 
 #include "im_log.h"
+#include "global_var.h"
 
 int base64_encode(unsigned char *in_str, int in_len,unsigned char *out_str)
 {
@@ -87,6 +88,8 @@ void GenerateSAK(char * mac,  unsigned char * output)
 	//char *sak_seed="1234567890123456789012345678901234567890";
 	//int i=0;
 	char *sak_seed="SO5oWyROG/7DLl2IIC+9RCuV7KFFIWXAfr1TuEor";
+	//char *sak_seed=global_getSAK();
+	imlogE("SAK SEED:%s\n",sak_seed);
 	
 	sprintf(txt,"%s:%s",mac,sak_seed);
 	imlogV("generateSAK:txt=%s\n",txt);
@@ -108,7 +111,7 @@ void HMACsha256(char * mac,unsigned char * input, unsigned int input_length,
     unsigned char key[64]={0x0};
 	GenerateSAK(mac,key);
 	key[40]='\0';
-	imlogV("SAK:%s\n",key);
+	//imlogE("SAK:%s\n",key);
   
     // Be careful of the length of string with the choosen hash engine. SHA1 needed 20 characters.  
     // Change the length accordingly with your choosen hash engine.   

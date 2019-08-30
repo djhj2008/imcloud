@@ -355,6 +355,7 @@ void *sysInputScan(void *arg)
 	float igain_f = short2float(igain);
 	float V_threshol = global_getVthreshol();
 	float I_threshol = global_getIthreshol();
+	int wifi_flag = global_getWifiMode();
 
 	if(adc_status!=ADC_START){
 		imlogE("sysInputScan adc_status=%d \n",adc_status);
@@ -471,7 +472,11 @@ void *sysInputScan(void *arg)
 			waveform_t[index].w3 = w_sum[WAVE_L3_CHANNEL]/SAMPLES_FRAME;
 			waveform_t[index].w4 = w_sum[WAVE_L4_CHANNEL]/SAMPLES_FRAME;
 			
-			waveform_t[index].rssi=get_wifi_info();
+			if(wifi_flag==1){
+				waveform_t[index].rssi=get_wifi_info();
+			}else{
+				waveform_t[index].rssi=0;
+			}
 			
 			totals = global_getTotals();
 			//n_totals = global_getNextTotals();
@@ -787,13 +792,14 @@ int getConfig()
 		}else{
 			global_setTotals(GLOBAL_TOTALS_DEFAULT);
 		}  
-			
+		
 		json_object_object_get_ex(infor_object, "domain",&result_object);
 		if(result_object!=NULL){
 			global_setdomain((char *)json_object_get_string(result_object));
 		}else{
 			global_setdomain(GLOBAL_DOMAIN_DEFAULT);
 		}
+		
 	}else{
 		global_setTotals(GLOBAL_TOTALS_DEFAULT);
 		global_setdomain(GLOBAL_DOMAIN_DEFAULT);
@@ -803,6 +809,8 @@ int getConfig()
 	
 	//global_setTotals(GLOBAL_TOTALS_DEFAULT);
 	global_startNextTotals();
+	
+	
 	global_setUrl(ICLOUD_URL_ACTIVATE);
 	global_setUrl(ICLOUD_URL_INFO);
 	global_setUrl(ICLOUD_URL_DATA);
@@ -960,6 +968,7 @@ int main(int arg, char *arc[])
 		goto Finish;
 	}
 	
+	/*
 	if(enum_devices()!=0){
 		imlogE("WIFI error\n");  
 		goto Finish;
@@ -970,7 +979,10 @@ int main(int arg, char *arc[])
 		goto Finish;
 	}else{
 		global_setMac(mac);
+		//global_setMac("8CA982FFFEFF29B8");
+		//global_setMac("8CA982FFFEFF8C73");
 	}
+	*/
 	
 	if(getConfig()<0){
 		imlogE("Config error\n"); 
@@ -987,7 +999,7 @@ int main(int arg, char *arc[])
 		imlogV("adc7606 input device dir: %s%s\n", ADC_DEV_PATH_NAME, ADC_DEV_NAME);  
 	}
 	
-	imlogE("access_key:%x",access_key[0]);
+	imlogE("access_key:%s",access_key);
 	if(access_key[0]!=0){
 		key_status = KEY_STATUS_OK;
 		imcloud_status = IMCOULD_INFO;
@@ -1000,8 +1012,9 @@ int main(int arg, char *arc[])
 	{
 		if(imcloud_status==IMCOULD_ACTIVATE){
 			if(GetAcessKey()<STATUS_OK){
+				imlogE("MAC:%s\n",mac);
 				imlogE("GetAcessKey\n"); 
-				sleep(1000);
+				sleep(5);
 			}else{
 				key_status = KEY_STATUS_OK;
 				imcloud_status = IMCOULD_INFO;

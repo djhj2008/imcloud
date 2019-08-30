@@ -55,31 +55,57 @@ Function List:
 #include "global_var.h"
 #include "eeprom_tool.h"
 
-uint16_t global_fw_version;
-int global_fw_size;
-uint32_t global_fw_crc;
+static uint16_t global_fw_version;
+static int global_fw_size;
+static uint32_t global_fw_crc;
 
-char domain[32]={0};
+static char domain[32]={0};
+static char global_sak[64]={0};
 /* get from server.needed other server interface */
-char access_key[ACCESS_KEY_SIZE+1]={0};
+static char access_key[ACCESS_KEY_SIZE+1]={0};
 /*wifi Mac ADDR */
-char mac_addr[MAC_LEN+1]= {0x0};
+static char mac_addr[MAC_LEN+1]= {0x0};
 /*Server URL */
-char cloud_url[10][256]={0};
+static char cloud_url[10][256]={0};
 /*WaveForm Channels Flag */
-uint8_t ch_flag[WAVE_CHANNEL_MAX];
+static uint8_t ch_flag[WAVE_CHANNEL_MAX];
 /*WaveForm upload totals */
-int global_totals;
+static int global_totals;
 /*WaveForm next upload totals */
-int next_totals;
+static int next_totals;
 /*Vgain Igain*/
 static uint16_t global_igain;
 static uint16_t global_vgain;
 
-float V_threshol = 0.0;
-float I_threshol = 0.0;
+static float V_threshol = 0.0;
+static float I_threshol = 0.0;
 
 static uint8_t global_adc_frq;
+
+static char global_uuid[UUID_SIZE+1];
+
+static int global_wifimode=1; //1 wifi mode ,0 lte 3g mode
+
+void global_setWifiMode(int mode)
+{
+	global_wifimode = mode;
+}
+
+int global_getWifiMode()
+{
+	return global_wifimode;
+}
+
+
+void global_setUUID(char * uuid)
+{
+	strcpy(global_uuid,uuid);
+}
+
+char *global_getUUID()
+{
+	return global_uuid;
+}
 
 void global_setFWsize(int size)
 {
@@ -104,6 +130,16 @@ int global_getFWChecksum()
 void global_setdomain(char *url)
 {
 	strcpy(domain,url);
+}
+
+void global_setSAK(char *sak)
+{
+	strcpy(global_sak,sak);
+}
+
+char *global_getSAK()
+{
+	return global_sak;
 }
 
 void global_setFwVersion(uint8_t * version)

@@ -6,6 +6,6 @@ export VERSION_MAJOR=1
 export VERSION_MINOR=0
 export VERSION_REVISION=0
 export VERSION_HOST=1
-export BUILD_DATE=$(date "+%m%d%k%M")
+export BUILD_DATE=$(date "+%y%m%d%k%M")
 make clean
 make

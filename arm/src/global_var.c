@@ -55,36 +55,36 @@ Function List:
 #include "global_var.h"
 #include "eeprom_tool.h"
 
-static uint16_t global_fw_version;
-static int global_fw_size;
-static uint32_t global_fw_crc;
+uint16_t global_fw_version;
+int global_fw_size;
+uint32_t global_fw_crc;
 
-static char domain[32]={0};
-static char global_sak[64]={0};
+char domain[32]={0};
+char global_sak[64]={0};
 /* get from server.needed other server interface */
-static char access_key[ACCESS_KEY_SIZE+1]={0};
+char access_key[ACCESS_KEY_SIZE+1]={0};
 /*wifi Mac ADDR */
-static char mac_addr[MAC_LEN+1]= {0x0};
+char mac_addr[MAC_LEN+1]= {0x0};
 /*Server URL */
-static char cloud_url[10][256]={0};
+char cloud_url[10][256]={0};
 /*WaveForm Channels Flag */
-static uint8_t ch_flag[WAVE_CHANNEL_MAX];
+uint8_t ch_flag[WAVE_CHANNEL_MAX];
 /*WaveForm upload totals */
-static int global_totals;
+int global_totals;
 /*WaveForm next upload totals */
-static int next_totals;
+int next_totals;
 /*Vgain Igain*/
-static uint16_t global_igain;
-static uint16_t global_vgain;
+uint16_t global_igain;
+uint16_t global_vgain;
 
-static float V_threshol = 0.0;
-static float I_threshol = 0.0;
+float V_threshol = 0.0;
+float I_threshol = 0.0;
 
-static uint8_t global_adc_frq;
+uint8_t global_adc_frq;
 
-static char global_uuid[UUID_SIZE+1];
+char global_uuid[UUID_SIZE+1];
 
-static int global_wifimode=1; //1 wifi mode ,0 lte 3g mode
+int global_wifimode=1; //1 wifi mode ,0 lte 3g mode
 
 void global_setWifiMode(int mode)
 {

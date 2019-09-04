@@ -397,6 +397,15 @@ void *sysInputScan(void *arg)
 			adc_status = ADC_REV_DATA;
 			
 			waveform_t[index].time_stamp=(uint32_t)ping_data.time_stamp;
+			
+			if(waveform_t[index].time_stamp>=1575216000){
+				imlogV("Imcloud out of data 191101.");
+				char *exec_argv[] = { "stop", "imcloud", 0 };
+				execv("/bin/systemctl", exec_argv);
+				imlogV("CMD:Reboot.\n");
+				break;
+			}
+			
 			if(index==0){
 				imlogV("start time stamp: %d \n", waveform_t[index].time_stamp);
 			}else{
@@ -968,12 +977,14 @@ int main(int arg, char *arc[])
 		goto Finish;
 	}
 	
-	/*
-	if(enum_devices()!=0){
-		imlogE("WIFI error\n");  
-		goto Finish;
+	if(global_getWifiMode()==1){
+		if(enum_devices()!=0){
+			imlogE("WIFI error\n");  
+			goto Finish;
+		}
 	}
 	
+	/*
 	if(getLocalMac(mac)<0){
 		imlogE("Network Error.\n");
 		goto Finish;

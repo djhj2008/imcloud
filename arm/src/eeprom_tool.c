@@ -462,7 +462,7 @@ int im_init_e2prom_data()
 	//uint8_t  mac[MAC_SIZE+1]={0x0};
 	
 	char  keys[ACCESS_KEY_SIZE+1]={0x0};
-	//char  sak[SAK_SEED_SIZE+1]={0x0};
+	char  sak[SAK_SEED_SIZE+1]={0x0};
 	//char  url[DOMAIN_SIZE+1]={0x0};
 	float I_threshol,V_threshol;
 	uint16_t igain=0;
@@ -520,13 +520,14 @@ int im_init_e2prom_data()
 	global_setIthreshol(I_threshol);
 	imlogV("I_threshol=%f",I_threshol);
 	
-	/*
+	
 	read_data(SAK_SEED_ADDR,(uint8_t *)sak,SAK_SEED_SIZE);
 	imlogV("sak=%s",sak);
 	if(sak[0]!=0xff){
 		global_setSAK((char *)sak);
 	}
 	
+	/*
 	read_data(DOMAIN_ADDR,(uint8_t *)url,DOMAIN_SIZE);
 	imlogV("url=%s",url);
 	if(url[0]!=0xff&&strlen(url)>3){

@@ -124,6 +124,7 @@ uint8_t * GenerateWaveform(char * file,int *len ,uint32_t * first_time,int ichan
 	uint16_t ucFramesPerGroup  = totals;   //300
 	int file_totals=0;
 	struct data_header header_buf;
+	int wifi_flag = global_getWifiMode();
 	
 	imlogV("ucFramesPerGroup  : %d\n", ucFramesPerGroup);
 
@@ -163,7 +164,11 @@ uint8_t * GenerateWaveform(char * file,int *len ,uint32_t * first_time,int ichan
 
 	data_header_t.version 	= DATA_FORMAT_VERSION;
 	data_header_t.total 	= ucFramesPerGroup;
-	data_header_t.flag 		= WATTAGE_FLAG|RSSI_FLAG|flag;
+	if(wifi_flag==1){
+		data_header_t.flag 	= WATTAGE_FLAG|RSSI_FLAG|flag;
+	}else{
+		data_header_t.flag 	= WATTAGE_FLAG|flag;
+	}
 	data_header_t.igain		= global_getIgain();
 	data_header_t.vgain		= global_getVgain();
 	data_header_t.start_time= (uint32_t)waveform_t[0].time_stamp;
@@ -220,11 +225,13 @@ uint8_t * GenerateWaveform(char * file,int *len ,uint32_t * first_time,int ichan
 			
 			imlogV("index  : %d remaining = %d\n", index , remaining);
 			
-			for(j=0;j<PLC_FRAMES_PER_GROUP_MAX;j++){
-				memcpy(postdata+index,&(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].rssi),sizeof(int8_t));
-				index += sizeof(int8_t);
+			if(wifi_flag==1){
+				for(j=0;j<PLC_FRAMES_PER_GROUP_MAX;j++){
+					memcpy(postdata+index,&(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].rssi),sizeof(int8_t));
+					index += sizeof(int8_t);
+				}
+				imlogV("WIFI MODE times : %d index  rssi end: %d\n", i,index);
 			}
-			imlogV("times : %d index  rssi end: %d\n", i,index);
 			
 			for(j=0;j<PLC_FRAMES_PER_GROUP_MAX;j++){
 				int w1=0,w2=0,w3=0,w4=0;
@@ -273,12 +280,13 @@ uint8_t * GenerateWaveform(char * file,int *len ,uint32_t * first_time,int ichan
 			
 			imlogV("index  : %d\n", index);
 			
-			for(j=0;j<remaining;j++){
-				memcpy(postdata+index,&(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].rssi),sizeof(int8_t));
-				index += sizeof(int8_t);
+			if(wifi_flag==1){
+				for(j=0;j<remaining;j++){
+					memcpy(postdata+index,&(waveform_t[j+i*PLC_FRAMES_PER_GROUP_MAX].rssi),sizeof(int8_t));
+					index += sizeof(int8_t);
+				}
+				imlogV("WIFI MODE remaining times : %d index  rssi end: %d\n", i,index);
 			}
-			imlogV("times : %d index  rssi end: %d\n", i,index);
-			
 			for(j=0;j<remaining;j++){
 				int w1=0,w2=0,w3=0,w4=0;
 				//imlogV("w1=%f w2=%f w3=%f w4=%f\n",

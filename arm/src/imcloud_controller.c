@@ -42,6 +42,7 @@ char *imcloud_cmd_t[IMCLOUD_CMD_MAX]={
 	IMCOULD_DATA_LOGLEVEL_CMD,
 	IMCOULD_DATA_WAVEUPLOAD_CMD,
 	IMCOULD_DATA_SSID_CMD,
+	IMCLOUD_DATA_TEST_COMPLETED,
 		
 };
 
@@ -273,6 +274,8 @@ int CloudInfoHandle(char * buf){
 			imlogE("%s",code);
 			if(strcmp(code,SERVER_INVALID_KEY)==0){
 				ret = INVALID_KEY;
+			}else if(strcmp(code,SERVER_BAD_REQUEST)==0){
+				ret = BAD_REQUEST;
 			}
 			
 			json_object_object_get_ex(infor_object, IMCLOUD_SERVER_MESSAGE,&result_object);        
@@ -406,6 +409,9 @@ int CloudDataHandle(char * buf){
 			imlogV("CMD:Wave Upload.\n");
 		}else if(cmd==IMCLOUD_CMD_SSID_CHANGE){
 			imlogV("CMD:SSID Change.\n");
+		}else if(cmd==IMCLOUD_CMD_TEST_COMPLETED){
+			
+			imlogV("CMD:TEST COMPLETED.\n");
 		}else{
 			imlogE("Error CMD:%d\n", cmd);
 		}

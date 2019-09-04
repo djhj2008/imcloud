@@ -84,11 +84,10 @@ void GenerateSAK(char * mac,  unsigned char * output)
 {
 	char txt[128]={0x0};
 	unsigned char  hash[SHA256_DIGEST_LENGTH];
-	//char *sak_seed="tnjJExP3IhDEAEyzBd+Fo6GF3l4c4y4j3IgduB4i";
+	//char *sak_seed="tnjJExP3IhDEAEyzBd+Fo6GF3l4c4y4j3IgduB4i";//test server
 	//char *sak_seed="1234567890123456789012345678901234567890";
 	//int i=0;
-	char *sak_seed="SO5oWyROG/7DLl2IIC+9RCuV7KFFIWXAfr1TuEor";
-	//char *sak_seed=global_getSAK();
+	char *sak_seed="SO5oWyROG/7DLl2IIC+9RCuV7KFFIWXAfr1TuEor";//release server
 	imlogE("SAK SEED:%s\n",sak_seed);
 	
 	sprintf(txt,"%s:%s",mac,sak_seed);
@@ -109,9 +108,11 @@ void HMACsha256(char * mac,unsigned char * input, unsigned int input_length,
 {  
     // The secret key for hashing  
     unsigned char key[64]={0x0};
-	GenerateSAK(mac,key);
+	//GenerateSAK(mac,key);
+	char *sak = global_getSAK();
+    strcpy((char *)key,sak);
 	key[40]='\0';
-	//imlogE("SAK:%s\n",key);
+	imlogV("SAK:%s\n",key);
   
     // Be careful of the length of string with the choosen hash engine. SHA1 needed 20 characters.  
     // Change the length accordingly with your choosen hash engine.   

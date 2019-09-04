@@ -20,6 +20,7 @@ enum SERVER_CODE_ERROR{
 	HTTP_ERROR = -1,
 	NORMAL_ERROR = -2,
 	INVALID_KEY = -3,
+	BAD_REQUEST = -4,
 }; 
 
 /*Interface Get Access Key*/
@@ -58,6 +59,8 @@ enum IMCOULD_V_CHANNELS {
 #define IMCOULD_DATA_LOGLEVEL_CMD			"loglevel_change"
 #define IMCOULD_DATA_WAVEUPLOAD_CMD			"waveupload_change"
 #define IMCOULD_DATA_SSID_CMD				"ssid_change"
+#define IMCLOUD_DATA_TEST_COMPLETED			"Test completed successfully"
+
 
 #define IMCLOUD_DATA_FW_VERSION_CONTENT		"fw_version"
 #define IMCLOUD_DATA_FW_DOMAIN_CONTENT		"domain"
@@ -83,6 +86,7 @@ enum IMCOULD_CMD {
 	IMCLOUD_CMD_LOGLEVEL_CHANGE,
 	IMCLOUD_CMD_WAVEUPLOAD_CHANGE,
 	IMCLOUD_CMD_SSID_CHANGE,
+	IMCLOUD_CMD_TEST_COMPLETED,
 	IMCLOUD_CMD_MAX,
 };
 

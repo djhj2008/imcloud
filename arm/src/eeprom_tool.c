@@ -479,10 +479,10 @@ int im_init_e2prom_data()
 	imlogV("MANUFATURE=%s",manufacture);	
 	
 	read_data(HW_VERSION_ADDR, (uint8_t *)hw_version, ADC_VERSION_SIZE);
-	imlogV("HW=%s",hw_version);	
+	imlogV("HW=%s",hw_version);
 	
 	read_data(FPGA_VERSION_ADDR, (uint8_t *)fpga_version, ADC_VERSION_SIZE);
-	imlogV("FPGA=%s",hw_version);	
+	imlogV("FPGA=%s",fpga_version);	
 	
 	read_data(FW_VERSION_ADDR, (uint8_t *)fw_version, ADC_VERSION_SIZE);
 	global_setFwVersion(fw_version);

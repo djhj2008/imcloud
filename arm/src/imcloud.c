@@ -398,6 +398,7 @@ void *sysInputScan(void *arg)
 			
 			waveform_t[index].time_stamp=(uint32_t)ping_data.time_stamp;
 			
+			/*
 			if(waveform_t[index].time_stamp>=1575216000){
 				imlogV("Imcloud out of data 191101.");
 				char *exec_argv[] = { "stop", "imcloud", 0 };
@@ -405,6 +406,7 @@ void *sysInputScan(void *arg)
 				imlogV("CMD:Reboot.\n");
 				break;
 			}
+			*/
 			
 			if(index==0){
 				imlogV("start time stamp: %d \n", waveform_t[index].time_stamp);
@@ -955,7 +957,6 @@ int main(int arg, char *arc[])
 	char *access_key=global_getAccesskey();
 	uint16_t version = global_getFWversionDefault();
 	uint32_t date = FW_BUILD_DATE;
-	
 	imlogV("MAIN:VERAION:%d",global_getFWversion());
 	imlogV("BUILD DATE:%d",date);
 	eeprom_set_fw_version(version);
@@ -1024,8 +1025,8 @@ int main(int arg, char *arc[])
 		if(imcloud_status==IMCOULD_ACTIVATE){
 			if(GetAcessKey()<STATUS_OK){
 				imlogE("MAC:%s\n",mac);
-				imlogE("GetAcessKey\n"); 
-				sleep(5);
+				imlogE("GetAcessKey\n");
+				sleep(60);
 			}else{
 				key_status = KEY_STATUS_OK;
 				imcloud_status = IMCOULD_INFO;
@@ -1034,13 +1035,11 @@ int main(int arg, char *arc[])
 			int ret = GetCHInfo();
 			if(ret == STATUS_OK){
 				imcloud_status = IMCOULD_DATA;
-				//sleep(delay);
 			}else if(ret == INVALID_KEY){
 				imcloud_status = IMCOULD_ACTIVATE;
-				//sleep(delay);
 			}else{
 				imlogE("GetCHInfo\n");
-				//sleep(delay);
+				sleep(60);
 			}
 		}else if(imcloud_status==IMCOULD_DATA){
 			if(adc_status==ADC_IDLE){

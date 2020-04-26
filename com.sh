@@ -1,9 +1,9 @@
 #!/bin/bash
 FW_VERSION=true
 export VERSION_MAJOR=2
-export VERSION_MINOR=0
+export VERSION_MINOR=1
 export VERSION_REVISION=0
-export VERSION_HOST=1
+export VERSION_HOST=2
 export BUILD_DATE=$(date "+%y%m%d%k%M")
 
 IMCLOUD_VERSION=${VERSION_MAJOR}"."${VERSION_MINOR}"."${VERSION_REVISION}"."${VERSION_HOST}"."${BUILD_DATE}".release"

@@ -317,7 +317,7 @@ configure:6680: $? = 0
 configure:6759: arm-linux-gnueabihf-gcc -o conftest    conftest.c  >&5
 configure:6759: $? = 0
 configure:6838: arm-linux-gnueabihf-gcc -o conftest    conftest.c  >&5
-/tmp/ccMnMqxs.o: In function `main':
+/tmp/cchHfjKz.o: In function `main':
 conftest.c:(.text+0x4): undefined reference to `inet_ntoa_r'
 collect2: error: ld returned 1 exit status
 configure:6838: $? = 1

@@ -1,0 +1,25 @@
+#交叉编译
+环境配置：
+修改com.sh中your arm gcc path修改为当前环境的patch即可
+#path
+export CROSS_COMPILE=arm-linux-gnueabihf-
+export ARCH=arm
+export PATH="your arm gcc path"/gcc-linaro-5.5.0-2017.10-x86_64_arm-linux-gnueabihf/bin:$PATH
+编译根目录运行 
+./com.sh
+版本修改：
+修改com.sh中最上方版本好即可
+主要文件:
+目录
+arm/：app主要代码和脚本
+com.sh: 编译打包脚本
+curl/：libcurl
+fw_update/：ota升级 不支持
+.git/： git
+hiredis/: libredis
+json-c/: libjson-c
+openssl-1.0.2g/:openssl
+plc_lib_intel/: intel plc lib
+readme:本文件
+x86/： x86平台 不支持
+

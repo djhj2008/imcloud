@@ -62,6 +62,7 @@ then
   exit
 fi
 
+#path
 export CROSS_COMPILE=arm-linux-gnueabihf-
 export ARCH=arm
 export PATH=~/windows/arm-linux/gcc-linaro-5.5.0-2017.10-x86_64_arm-linux-gnueabihf/bin:$PATH
@@ -72,8 +73,8 @@ cd ${basepath}/curl
 rm -rf ${PREFIX_CURL}
 if [ $1 == "new" ]
 then
-  ./configure --prefix=${PREFIX_CURL} --host=arm-linux CC=${CROSS_COMPILE}gcc CXX=${CROSS_COMPILE}g++
   make clean
+  ./configure --prefix=${PREFIX_CURL} --host=arm-linux CC=${CROSS_COMPILE}gcc CXX=${CROSS_COMPILE}g++
 fi
 make
 make install
@@ -97,8 +98,8 @@ export PREFIX_JOSN=${basepath}/libjson
 #./configure --prefix=${PREFIX_JOSN} --host=arm-linux-gnueabihf --build=i686-pc-linux
 if [ $1 == "new" ]
 then
-  ./configure --prefix=${PREFIX_JOSN} --host=arm-linux-gnueabihf --build=i686-pc-linux
   make clean
+  ./configure --prefix=${PREFIX_JOSN} --host=arm-linux-gnueabihf --build=i686-pc-linux
 fi
 make
 make install
@@ -130,10 +131,12 @@ cd ${basepath}/arm
 make clean
 make
 mkdir imcloud_${IMCLOUD_VERSION}
+if [ -f "./imcloud" ];
+then
 cp -r ./imcloud ./imlibs/ imcloud.service install.sh ReadMe ./config/ imcloud_${IMCLOUD_VERSION}
 tar -cvf imcloud_${IMCLOUD_VERSION}.tar imcloud_${IMCLOUD_VERSION}
+echo "SUCCESS."
+fi
 mv imcloud_${IMCLOUD_VERSION}.tar ../
 rm -rf ./imcloud_${IMCLOUD_VERSION}
 echo "End"
-
-
